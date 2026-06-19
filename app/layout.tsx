@@ -20,6 +20,12 @@ const body = Nunito({
 export const metadata: Metadata = {
   title: 'Grooming Buddy',
   description: 'Your grooming coach when the instructor cannot be there.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Buddy', statusBarStyle: 'default' },
+  icons: {
+    icon: '/favicon-32.png',
+    apple: '/apple-icon.png',
+  },
 };
 
 // Phone-first: used one-handed at the grooming table.
