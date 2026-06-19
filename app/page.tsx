@@ -92,9 +92,10 @@ function BuddyBubble({ children, soft }: { children: React.ReactNode; soft?: boo
 
 export default function BuddyApp() {
   const [screen, setScreen] = useState<Screen>('intro');
-  const [stepIdx, setStepIdx] = useState(4);
-  const [done, setDone] = useState<boolean[]>([true, true, true, true, false, false, false, false, false]);
-  const [selStep, setSelStep] = useState(4);
+  const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
+  const [done, setDone] = useState<boolean[]>(Array(GROOM_STEPS.length).fill(false));
+  const [selStep, setSelStep] = useState(0);
+  const [breed, setBreed] = useState('Goldendoodle'); // set by the breed chips on Home
   const [quickAction, setQuickAction] = useState<QuickAction>(null);
   const [quickSent, setQuickSent] = useState(false);
   const [quickInput, setQuickInput] = useState('');
@@ -121,7 +122,7 @@ export default function BuddyApp() {
   }, []);
 
   const doneCount = done.filter(Boolean).length;
-  const ctx = `Dog: Maple, a Goldendoodle. Full groom, teddy-bear face. Current step: ${GROOM_STEPS[stepIdx].t}.`;
+  const ctx = `Dog: a ${breed}. Full groom, teddy-bear face. Current step: ${GROOM_STEPS[stepIdx].t}.`;
 
   // ---- real Buddy call (falls back to canned on error / no key) ----
   async function askBuddy(mode: string, text: string, imageDataUrl?: string) {
@@ -137,7 +138,6 @@ export default function BuddyApp() {
   // ---- navigation / handlers (mirror the prototype) ----
   const letsGroom = () => setScreen('home');
   const goHome = () => setScreen('home');
-  const startGroom = () => setScreen('steps');
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); };
   const resetQuick = () => { setQuickAction(null); setQuickSent(false); setQuickInput(''); setQuickReply(null); setQuickImages([]); };
@@ -195,10 +195,10 @@ export default function BuddyApp() {
       {/* status-bar notch breathing room is built into each screen's top padding */}
       {screen === 'intro' && <Intro letsGroom={letsGroom} />}
       {screen === 'home' && (
-        <Home goDen={goDen} setQuickMode={setQuickMode} startGroom={startGroom} openListening={openListening} />
+        <Home goDen={goDen} setQuickMode={setQuickMode} openListening={openListening} pickBreed={(b) => { setBreed(b); setScreen('steps'); }} />
       )}
       {screen === 'steps' && (
-        <Steps doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} openListening={openListening} />
+        <Steps breed={breed} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} openListening={openListening} />
       )}
       {screen === 'detail' && (
         <Detail i={selStep} backToList={backToList} gotItNext={gotItNext} />
@@ -210,6 +210,7 @@ export default function BuddyApp() {
           setQuickInput={setQuickInput} quickReply={quickReply} quickImages={quickImages}
           quickLoading={quickLoading} pick={pick} sendQuick={sendQuick}
           triggerSafety={triggerSafety} currentDoNext={GROOM_STEPS[stepIdx].doNext}
+          currentStepTitle={GROOM_STEPS[stepIdx].t}
         />
       )}
       {screen === 'photo' && (
@@ -283,9 +284,9 @@ function Intro({ letsGroom }: { letsGroom: () => void }) {
 // ============================================================
 // SCREEN 2 — Home
 // ============================================================
-function Home({ goDen, setQuickMode, startGroom, openListening }: { goDen: () => void; setQuickMode: () => void; startGroom: () => void; openListening: () => void }) {
-  const breed = (label: string, active?: boolean, muted?: boolean) => (
-    <div onClick={startGroom} style={{ background: active ? 'var(--primary)' : '#fff', border: BORDER, borderRadius: 999, padding: '9px 15px', fontWeight: 800, fontSize: 14, color: muted ? 'var(--muted-2)' : INK, cursor: 'pointer' }}>{label}</div>
+function Home({ goDen, setQuickMode, openListening, pickBreed }: { goDen: () => void; setQuickMode: () => void; openListening: () => void; pickBreed: (b: string) => void }) {
+  const chip = (label: string, active?: boolean, muted?: boolean, onClick?: () => void) => (
+    <div onClick={onClick ?? (() => pickBreed(label))} style={{ background: active ? 'var(--primary)' : '#fff', border: BORDER, borderRadius: 999, padding: '9px 15px', fontWeight: 800, fontSize: 14, color: muted ? 'var(--muted-2)' : INK, cursor: 'pointer' }}>{label}</div>
   );
   return (
     <div className="scr">
@@ -294,14 +295,13 @@ function Home({ goDen, setQuickMode, startGroom, openListening }: { goDen: () =>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img onClick={goDen} src={MASCOT} alt="Buddy" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff', cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div onClick={goDen} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: BORDER, borderRadius: 999, padding: '5px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, cursor: 'pointer' }}>🦴 32</div>
           <div onClick={goDen} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green)', border: BORDER, borderRadius: 999, padding: '5px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff', cursor: 'pointer' }}>7🔥</div>
         </div>
       </div>
       {/* switcher */}
       <div style={{ margin: '6px 18px 0', background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-        <div style={{ flex: 1, textAlign: 'center', background: 'var(--primary)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK }}>Guided</div>
-        <div onClick={setQuickMode} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Quick</div>
+        <div style={{ flex: 1, textAlign: 'center', background: 'var(--primary)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK }}>Guided groom</div>
+        <div onClick={setQuickMode} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Quick question</div>
       </div>
       <div className="gbsc scroll" style={{ padding: '0 18px' }}>
         <div style={{ padding: '20px 0 0' }}>
@@ -309,22 +309,16 @@ function Home({ goDen, setQuickMode, startGroom, openListening }: { goDen: () =>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 4 }}>Tell me the breed & coat, I&apos;ll build the plan.</div>
         </div>
         <div style={{ padding: '16px 0 0', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {breed('Goldendoodle', true)}
-          {breed('Shih Tzu')}
-          {breed('Lab')}
-          {breed('+ more', false, true)}
+          {chip('Goldendoodle', true)}
+          {chip('Shih Tzu')}
+          {chip('Lab')}
+          {chip('+ more', false, true, () => pickBreed('Goldendoodle'))}
         </div>
-        <div onClick={startGroom} style={{ margin: '18px 0 0', background: 'var(--primary-soft)', border: BORDER, borderRadius: 18, padding: 15, boxShadow: HARD, cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted-gold)' }}>Pick up where you left off</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 9 }}>
-            <div style={{ flex: 'none', width: 44, height: 44, borderRadius: 13, background: 'var(--primary)', border: BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FFD, fontWeight: 800, color: INK }}>5/9</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, lineHeight: 1 }}>Maple · Goldendoodle</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-1)' }}>Next: scissor the face</div>
-            </div>
-            <ChevronR />
-          </div>
-        </div>
+        {/* "Pick up where you left off" resume card removed for the account-free
+            demo (no persisted progress yet). Kept here for when sessions persist:
+            <div onClick={startGroom} style={{ margin:'18px 0 0', background:'var(--primary-soft)', border:BORDER, borderRadius:18, padding:15, boxShadow:HARD, cursor:'pointer' }}>
+              ...PICK UP WHERE YOU LEFT OFF · 5/9 · Maple · Goldendoodle · Next: scissor the face...
+            </div> */}
         <div style={{ height: 18 }} />
       </div>
       {/* action bar */}
@@ -339,7 +333,7 @@ function Home({ goDen, setQuickMode, startGroom, openListening }: { goDen: () =>
 // ============================================================
 // SCREEN 3 — Steps list
 // ============================================================
-function Steps({ doneCount, done, stepIdx, goHome, openDetail, setQuickMode, openListening }: { doneCount: number; done: boolean[]; stepIdx: number; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void; openListening: () => void }) {
+function Steps({ breed, doneCount, done, stepIdx, goHome, openDetail, setQuickMode, openListening }: { breed: string; doneCount: number; done: boolean[]; stepIdx: number; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void; openListening: () => void }) {
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER }}>
@@ -347,7 +341,7 @@ function Steps({ doneCount, done, stepIdx, goHome, openDetail, setQuickMode, ope
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ChevronL size={22} onClick={goHome} />
             <div>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, lineHeight: 1 }}>Maple · Goldendoodle</div>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, lineHeight: 1 }}>{breed}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)' }}>Full groom · teddy-bear face</div>
             </div>
           </div>
@@ -465,7 +459,7 @@ type QuickProps = {
   setQuickInput: (s: string) => void; quickReply: string | null;
   quickImages: { url: string; caption: string }[]; quickLoading: boolean;
   pick: (a: QuickAction) => void; sendQuick: (mode: string) => void;
-  triggerSafety: () => void; currentDoNext: string;
+  triggerSafety: () => void; currentDoNext: string; currentStepTitle: string;
 };
 function Quick(p: QuickProps) {
   const tile = (label: React.ReactNode, onClick: () => void, bg: string, glyph: React.ReactNode, full?: boolean) => (
@@ -488,8 +482,8 @@ function Quick(p: QuickProps) {
     <div className="scr">
       <div style={{ padding: '34px 18px 0' }}>
         <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-          <div onClick={p.goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided</div>
-          <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick</div>
+          <div onClick={p.goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
+          <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick question</div>
         </div>
       </div>
       <div className="gbsc scroll" style={{ padding: '14px 18px 16px' }}>
@@ -524,7 +518,7 @@ function Quick(p: QuickProps) {
         {p.quickAction === 'next' && (
           <div style={{ marginTop: 14 }}>
             <BuddyBubble soft>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-gold)', marginBottom: 3 }}>Next: scissor the face</div>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-gold)', marginBottom: 3 }}>Next: {p.currentStepTitle.toLowerCase()}</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1.4 }}>{p.currentDoNext}</div>
             </BuddyBubble>
           </div>
@@ -611,7 +605,7 @@ function Photo({ backToQuick, photoUrl, photoReply, photoLoading, triggerCamera 
             <img src={photoUrl} alt="your photo" style={{ width: '100%', display: 'block' }} />
           ) : (
             <div style={{ background: STRIPES, height: 158, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <span style={{ font: '600 11px ui-monospace,monospace', color: 'var(--muted-gold)', background: 'var(--cream)', padding: '4px 8px', borderRadius: 6, border: '1.5px solid var(--ink)' }}>your photo: Maple&apos;s face</span>
+              <span style={{ font: '600 11px ui-monospace,monospace', color: 'var(--muted-gold)', background: 'var(--cream)', padding: '4px 8px', borderRadius: 6, border: '1.5px solid var(--ink)' }}>your photo</span>
               <div style={{ position: 'absolute', right: 12, bottom: 12, background: 'var(--primary)', border: BORDER, borderRadius: 999, padding: '5px 12px', fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK }}>just now</div>
             </div>
           )}
@@ -647,21 +641,20 @@ function Photo({ backToQuick, photoUrl, photoReply, photoLoading, triggerCamera 
 // ============================================================
 // SCREEN 7 — Den (progress)
 // ============================================================
+// The Den is a labeled PREVIEW of progress (no accounts/persistence yet), so it
+// shows a few simple, fun, easy-to-follow facts only. Removed for now (kept in
+// memory `grooming-buddy-build` to revive if persistence lands): "Good Calls"
+// badge, skill levels/bars, and the Breeds Passport progression counter — those
+// imply tracking we cannot back yet and risk eroding trust.
 function Den({ backFromDen }: { backFromDen: () => void }) {
   const stat = (val: React.ReactNode, color: string, label: string) => (
     <div style={{ flex: 1, background: '#fff', border: BORDER, borderRadius: 16, padding: 12, boxShadow: HARD, textAlign: 'center' }}>
-      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 25, color, lineHeight: 1 }}>{val}</div>
+      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color, lineHeight: 1 }}>{val}</div>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-1)' }}>{label}</div>
     </div>
   );
-  const skill = (name: string, lvl: string, lvlColor: string, pct: number, barColor: string) => (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontWeight: 800, fontSize: 14, color: INK }}>{name}</span><span style={{ fontSize: 12, fontWeight: 800, color: lvlColor }}>{lvl}</span></div>
-      <div style={{ height: 11, background: 'var(--neutral-fill)', border: BORDER2, borderRadius: 999, overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: barColor }} /></div>
-    </div>
-  );
-  const passport = (label: string, filled: boolean) => (
-    <div style={{ flex: 1, aspectRatio: '1', borderRadius: 12, background: filled ? 'var(--primary)' : 'var(--neutral-fill)', border: filled ? BORDER2 : '2px dashed var(--dashed-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FFD, fontWeight: 800, fontSize: filled ? 10 : 18, color: filled ? INK : 'var(--dashed-border)', textAlign: 'center', lineHeight: 1.05, padding: 2 }}>{filled ? label : '?'}</div>
+  const breedChip = (label: string) => (
+    <div style={{ background: 'var(--primary)', border: BORDER2, borderRadius: 999, padding: '7px 13px', fontFamily: FFD, fontWeight: 800, fontSize: 13, color: INK }}>{label}</div>
   );
   return (
     <div className="scr">
@@ -669,43 +662,33 @@ function Den({ backFromDen }: { backFromDen: () => void }) {
         <ChevronL size={22} onClick={backFromDen} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={MASCOT} alt="Buddy" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: BORDER3, background: '#fff' }} />
-        <div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, lineHeight: 1 }}>Buddy&apos;s Den</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)' }}>You&apos;re getting better every groom 🐾</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, lineHeight: 1 }}>Buddy&apos;s Den</span>
+            <span style={{ background: '#fff', border: BORDER2, borderRadius: 999, padding: '2px 9px', fontFamily: FFD, fontWeight: 800, fontSize: 11, color: INK }}>Preview</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', marginTop: 2 }}>A peek at what your progress could look like 🐾</div>
         </div>
       </div>
       <div className="gbsc scroll" style={{ padding: '16px 16px 22px', display: 'flex', flexDirection: 'column', gap: 13 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           {stat('7🔥', 'var(--coral)', 'day streak')}
-          {stat('12', 'var(--green)', 'grooms done')}
-          {stat('🦴32', INK, 'bones')}
-        </div>
-        <div style={{ background: 'var(--green-tint)', border: BORDER, borderRadius: 16, padding: 14, boxShadow: HARD }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 18 }}>🛟</span><span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: 'var(--green-text)' }}>Good Calls · 5</span></div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-text-2)', lineHeight: 1.4, marginTop: 5 }}>Times you paused & got help when a dog needed it. <b>This is the badge Buddy&apos;s proudest of.</b></div>
+          {stat('12', 'var(--green)', 'grooms with Buddy')}
+          {stat('📸 28', INK, 'photo checks')}
         </div>
         <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, boxShadow: HARD }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK }}>Breeds Passport</span><span style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted-gold)' }}>6 / 24</span></div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
-            {passport('Golden doodle', true)}
-            {passport('Shih Tzu', true)}
-            {passport('Poodle', true)}
-            {passport('', false)}
-            {passport('', false)}
-          </div>
-        </div>
-        <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, boxShadow: HARD }}>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, marginBottom: 11 }}>Your skills</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {skill('Nails', 'Lvl 4', 'var(--green-text)', 85, 'var(--green)')}
-            {skill('Sanitary trim', 'Lvl 3', 'var(--muted-gold)', 55, 'var(--primary)')}
-            {skill('Scissor finish', 'Lvl 3', '#C2553A', 62, 'var(--coral)')}
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, marginBottom: 11 }}>Breeds you&apos;ve groomed</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {breedChip('Goldendoodle')}
+            {breedChip('Shih Tzu')}
+            {breedChip('Poodle')}
+            {breedChip('Cocker Spaniel')}
           </div>
         </div>
         <div style={{ background: 'var(--primary-soft)', border: BORDER, borderRadius: 16, padding: 13, display: 'flex', gap: 10, alignItems: 'center', boxShadow: HARD }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={MASCOT} alt="Buddy" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', lineHeight: 1.35 }}>&quot;De-matting jumped a level this week — proud of you!&quot; — Buddy</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', lineHeight: 1.35 }}>&quot;Every groom we do together, you get a little sharper. Keep it up! 🐾&quot; — Buddy</div>
         </div>
       </div>
     </div>
