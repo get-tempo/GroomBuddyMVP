@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Space_Grotesk } from 'next/font/google';
+import { Fredoka, Nunito } from 'next/font/google';
 import './globals.css';
 import { Nav } from './components/Nav';
 
-const display = Space_Grotesk({
+// Fredoka = rounded, friendly, playful headings (the "doggy/fun" feel).
+const display = Fredoka({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-display',
+});
+
+// Nunito = warm, soft, very readable body text for one-handed reading at the table.
+const body = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-body',
 });
 
 export const metadata: Metadata = {
@@ -19,7 +27,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#0E1116',
+  themeColor: '#FFF7EE',
 };
 
 export default function RootLayout({
@@ -28,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={display.variable}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       {/* suppressHydrationWarning: browser extensions (Grammarly, etc.) inject
           attributes into <body> before hydration; this silences that false mismatch. */}
       <body suppressHydrationWarning>
