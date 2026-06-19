@@ -18,7 +18,8 @@
 *.pem
 npm-debug.log*
 dev.log
-*.png
+# scratch screenshots at repo root (not public/ reference images)
+/*.png
 .vercel
 *.tsbuildinfo
 next-env.d.ts

@@ -24,7 +24,10 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--cream);
+  /* Doggy paws-and-bones pattern tiled behind the whole app. The image base is
+     pale cream, so it sits seamlessly under our palette; cards stay opaque. */
+  background: var(--cream) url('/art/istockphoto-1490825138-612x612.jpg') repeat;
+  background-size: 360px;
   color: var(--ink);
   font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -43,15 +46,15 @@ h1, h2, h3, .brand, .primary, .tab, .actions button {
   height: 100dvh;
   max-width: 640px;
   margin: 0 auto;
-  background: var(--cream);
-  box-shadow: 0 0 60px rgba(44, 38, 34, 0.06);
+  background: transparent;
 }
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: var(--cream);
+  background: rgba(255, 247, 238, 0.72);
+  backdrop-filter: blur(6px);
 }
 .brand {
   display: flex; align-items: center; gap: 8px;
@@ -208,7 +211,7 @@ h1, h2, h3, .brand, .primary, .tab, .actions button {
 
 .composer {
   display: flex; align-items: flex-end; gap: 8px; margin-top: auto;
-  padding: 12px; background: var(--cream);
+  padding: 12px; background: rgba(255, 247, 238, 0.86); backdrop-filter: blur(8px);
   position: sticky; bottom: 0;
 }
 .composer textarea {
