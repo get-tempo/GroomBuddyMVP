@@ -18,6 +18,7 @@
 *.pem
 npm-debug.log*
 dev.log
+.commitmsg.tmp
 # scratch screenshots at repo root (not public/ reference images)
 /*.png
 .vercel
