@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
+// True when server-side Supabase is usable. Routes check this and no-op cleanly
+// when keys aren't set, so the demo runs fine before Supabase is wired up.
+export function supabaseConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 // Browser-safe client: anon key, RLS-protected. Use in client components and for
 // anything tied to the logged-in student. Lazy so the app boots (and the chat
 // works on just the Anthropic key) before Supabase env is configured.

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { GROOM_STEPS } from '@/data/groom-steps';
+import { logEvent, getSessionId } from '@/lib/analytics';
 
 // ============================================================
 // Grooming Buddy — single-screen state machine (per the handoff).
@@ -111,6 +112,10 @@ export default function BuddyApp() {
   const [photoReply, setPhotoReply] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // session "portfolio" preview (photos checked this session) + survey overlay
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [showSurvey, setShowSurvey] = useState(false);
   const triggerCamera = () => fileRef.current?.click();
 
   // Deep-link to a screen via ?s=home|steps|detail|quick|photo|progress
@@ -139,7 +144,7 @@ export default function BuddyApp() {
   const letsGroom = () => setScreen('home');
   const goHome = () => setScreen('home');
   const backToList = () => setScreen('steps');
-  const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); };
+  const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: GROOM_STEPS[i].t }); };
   const resetQuick = () => { setQuickAction(null); setQuickSent(false); setQuickInput(''); setQuickReply(null); setQuickImages([]); };
   const setQuickMode = () => { resetQuick(); setScreen('quick'); };
   const backToQuick = () => setScreen('quick');
@@ -147,13 +152,15 @@ export default function BuddyApp() {
     const d = done.slice();
     d[stepIdx] = true;
     setDone(d);
+    const wasLast = stepIdx === GROOM_STEPS.length - 1;
     setStepIdx(Math.min(stepIdx + 1, GROOM_STEPS.length - 1));
     setScreen('steps');
+    if (wasLast || d.every(Boolean)) { logEvent('groom_complete', {}); setShowSurvey(true); }
   };
   const goDen = () => { setPrevScreen(screen); setScreen('progress'); };
   const backFromDen = () => setScreen(prevScreen || 'home');
   const openListening = () => setShowListening(true);
-  const triggerSafety = () => setShowSafety(true);
+  const triggerSafety = () => { setShowSafety(true); logEvent('safety', {}); };
   const stoppedGetHelp = () => { setShowSafety(false); setScreen('home'); };
 
   const pick = (a: QuickAction) => { setQuickAction(a); setQuickSent(false); setQuickReply(null); setQuickImages([]); setQuickInput(''); };
@@ -161,6 +168,7 @@ export default function BuddyApp() {
   async function sendQuick(mode: string) {
     setQuickSent(true);
     setQuickLoading(true);
+    logEvent('quick_question', { mode, text: quickInput || defaultQuery(mode) });
     try {
       const r = await askBuddy(mode, quickInput || defaultQuery(mode));
       setQuickReply(r.text);
@@ -177,8 +185,10 @@ export default function BuddyApp() {
   async function onPhotoPicked(file: File) {
     const url = URL.createObjectURL(file);
     setPhotoUrl(url);
+    setPhotos((prev) => [url, ...prev]); // session portfolio preview
     setPhotoReply(null);
     setPhotoLoading(true);
+    logEvent('photo_check', {});
     try {
       const dataUrl = await fileToDataUrl(file);
       const r = await askBuddy('photo', '', dataUrl);
@@ -216,10 +226,11 @@ export default function BuddyApp() {
       {screen === 'photo' && (
         <Photo backToQuick={backToQuick} photoUrl={photoUrl} photoReply={photoReply} photoLoading={photoLoading} triggerCamera={triggerCamera} />
       )}
-      {screen === 'progress' && <Den backFromDen={backFromDen} />}
+      {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
       {showListening && <Listening close={() => setShowListening(false)} />}
+      {showSurvey && <Survey sessionId={getSessionId()} close={() => setShowSurvey(false)} />}
 
       {/* hidden file input shared by the photo paths */}
       <input
@@ -646,7 +657,7 @@ function Photo({ backToQuick, photoUrl, photoReply, photoLoading, triggerCamera 
 // memory `grooming-buddy-build` to revive if persistence lands): "Good Calls"
 // badge, skill levels/bars, and the Breeds Passport progression counter — those
 // imply tracking we cannot back yet and risk eroding trust.
-function Den({ backFromDen }: { backFromDen: () => void }) {
+function Den({ backFromDen, photos, openSurvey }: { backFromDen: () => void; photos: string[]; openSurvey: () => void }) {
   const stat = (val: React.ReactNode, color: string, label: string) => (
     <div style={{ flex: 1, background: '#fff', border: BORDER, borderRadius: 16, padding: 12, boxShadow: HARD, textAlign: 'center' }}>
       <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color, lineHeight: 1 }}>{val}</div>
@@ -685,11 +696,26 @@ function Den({ backFromDen }: { backFromDen: () => void }) {
             {breedChip('Cocker Spaniel')}
           </div>
         </div>
+        {/* Portfolio preview: grooms checked this session (no storage yet) */}
+        <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, boxShadow: HARD }}>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, marginBottom: 11 }}>Your grooms</div>
+          {photos.length === 0 ? (
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-1)', lineHeight: 1.4 }}>The grooms you snap photos of will show up here, building your portfolio. 🐾</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {photos.map((src, k) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={k} src={src} alt="your groom" style={{ width: 78, height: 78, objectFit: 'cover', borderRadius: 12, border: BORDER2 }} />
+              ))}
+            </div>
+          )}
+        </div>
         <div style={{ background: 'var(--primary-soft)', border: BORDER, borderRadius: 16, padding: 13, display: 'flex', gap: 10, alignItems: 'center', boxShadow: HARD }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={MASCOT} alt="Buddy" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', lineHeight: 1.35 }}>&quot;Every groom we do together, you get a little sharper. Keep it up! 🐾&quot; — Buddy</div>
         </div>
+        <button onClick={openSurvey} style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, boxShadow: HARD, cursor: 'pointer' }}>Tell us what you think 💬</button>
       </div>
     </div>
   );
@@ -741,6 +767,75 @@ function Listening({ close }: { close: () => void }) {
         <MicIcon size={28} />
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginTop: 12 }}>Tap to send</div>
+    </div>
+  );
+}
+
+// ============================================================
+// OVERLAY — End-of-demo survey (anonymous, no account)
+// ============================================================
+function Survey({ sessionId, close }: { sessionId: string; close: () => void }) {
+  const [wouldUse, setWouldUse] = useState('');
+  const [wouldPay, setWouldPay] = useState('');
+  const [missing, setMissing] = useState('');
+  const [sent, setSent] = useState(false);
+
+  async function submit() {
+    setSent(true);
+    try {
+      await fetch('/api/survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, wouldUse, wouldPay, whatsMissing: missing }),
+      });
+    } catch {
+      /* keep the thank-you regardless */
+    }
+  }
+
+  const label = (t: string) => (
+    <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, margin: '16px 0 8px' }}>{t}</div>
+  );
+  const choice = (val: string, cur: string, set: (v: string) => void, text: string) => (
+    <button onClick={() => set(val)} style={{ flex: 1, padding: 11, borderRadius: 12, border: BORDER, fontFamily: FFD, fontWeight: 800, fontSize: 14, cursor: 'pointer', background: cur === val ? 'var(--primary)' : '#fff', color: INK, boxShadow: cur === val ? HARD2 : 'none' }}>{text}</button>
+  );
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 75, background: 'rgba(43,33,26,.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div style={{ background: 'var(--cream)', borderTop: BORDER3, borderRadius: '32px 32px 0 0', padding: '24px 22px 28px', animation: 'gbSlideUp .32s ease', maxHeight: '88%', overflowY: 'auto' }} className="gbsc">
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 23, color: INK }}>Thank you! 🐾</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 8, lineHeight: 1.45 }}>That genuinely helps Buddy get better. Appreciate you.</div>
+            <button onClick={close} style={{ width: '100%', marginTop: 18, background: 'var(--green)', border: BORDER, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 16, color: '#fff', boxShadow: HARD, cursor: 'pointer' }}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 23, color: INK, textAlign: 'center' }}>How&apos;d that feel?</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-1)', textAlign: 'center', marginTop: 4 }}>Three quick things, totally anonymous.</div>
+
+            {label('Would you actually use this?')}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {choice('yes', wouldUse, setWouldUse, 'Yes')}
+              {choice('maybe', wouldUse, setWouldUse, 'Maybe')}
+              {choice('no', wouldUse, setWouldUse, 'Nah')}
+            </div>
+
+            {label('Would you pay for it?')}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {choice('yes', wouldPay, setWouldPay, 'Yes')}
+              {choice('maybe', wouldPay, setWouldPay, 'Maybe')}
+              {choice('no', wouldPay, setWouldPay, 'No')}
+            </div>
+
+            {label("What's missing, or what would make it a no-brainer?")}
+            <textarea value={missing} onChange={(e) => setMissing(e.target.value)} rows={3} placeholder="Tell Buddy anything…" style={{ width: '100%', resize: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: 12, font: 'inherit', fontFamily: FFB, fontSize: 15, color: INK, outline: 'none' }} />
+
+            <button onClick={submit} style={{ width: '100%', marginTop: 16, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, boxShadow: HARD, cursor: 'pointer' }}>Send it →</button>
+            <button onClick={close} style={{ width: '100%', marginTop: 10, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Skip</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

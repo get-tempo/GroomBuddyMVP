@@ -15,11 +15,17 @@ import { embed } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { supabaseAdmin } from '@/lib/supabase';
 
-const RAG_ENABLED = false;
 const MATCH_COUNT = 5;
 
+// Auto-enables once both the embeddings key and Supabase server key are set AND
+// the curriculum has been ingested. Until then retrieveCurriculum returns ""
+// and the prompt simply runs without curriculum context.
+function ragEnabled(): boolean {
+  return !!(process.env.OPENAI_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 export async function retrieveCurriculum(query: string): Promise<string> {
-  if (!RAG_ENABLED || !query.trim()) return '';
+  if (!ragEnabled() || !query.trim()) return '';
 
   try {
     const { embedding } = await embed({
