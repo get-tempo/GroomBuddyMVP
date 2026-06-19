@@ -1,0 +1,20 @@
+Rebuild UI to the Claude Design handoff (sticker look + FSM)
+
+Recreate the high-fidelity design pixel-for-pixel: single-screen state
+machine (intro, home, steps, detail, quick, photo, Den) plus safety and
+listening overlays. New token system (ink borders, hard offset shadows,
+Buddy yellow, coral), Baloo 2 + Nunito fonts, and the keyframe animations.
+
+Wire real logic onto the existing pieces:
+- Guided flow uses the real 9-step curriculum content (works with no key).
+- Quick "what's next" pulls the current step.
+- Quick How/is-this-okay/Show-me/freeform and photo coaching call a new
+  /api/ask endpoint (Buddy persona + image bank), with a graceful canned
+  fallback so the demo works today and returns real answers once the key is set.
+- Safety stop + listening are the designed flows (real classifier/STT later).
+
+Retire the old /guided, /quick routes and Nav/Thread components. Add ?s=
+deep-linking to a screen for demos.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018rRCJeXPVfTCirZbVqwdH8

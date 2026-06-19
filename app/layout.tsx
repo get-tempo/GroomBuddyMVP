@@ -1,19 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Fredoka, Nunito } from 'next/font/google';
+import { Baloo_2, Nunito } from 'next/font/google';
 import './globals.css';
-import { Nav } from './components/Nav';
 
-// Fredoka = rounded, friendly, playful headings (the "doggy/fun" feel).
-const display = Fredoka({
+// Baloo 2 = rounded, chunky, friendly display font (titles, buttons, numbers).
+const display = Baloo_2({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['500', '600', '700', '800'],
   variable: '--font-display',
 });
 
-// Nunito = warm, soft, very readable body text for one-handed reading at the table.
+// Nunito = body / UI text.
 const body = Nunito({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-body',
 });
 
@@ -33,24 +32,15 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#FFF7EE',
+  themeColor: '#FFF8EE',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      {/* suppressHydrationWarning: browser extensions (Grammarly, etc.) inject
-          attributes into <body> before hydration; this silences that false mismatch. */}
-      <body suppressHydrationWarning>
-        <div className="app">
-          <Nav />
-          <div className="view">{children}</div>
-        </div>
-      </body>
+      {/* suppressHydrationWarning: browser extensions inject <body> attributes
+          before hydration; this silences that false mismatch. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
