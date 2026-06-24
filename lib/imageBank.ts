@@ -49,8 +49,15 @@ export function findReferenceImages(query: string, maxResults = 3): ReferenceMat
     return { ...img, score };
   });
 
-  return scored
-    .filter((m) => m.score >= MIN_SCORE)
-    .sort((a, b) => b.score - a.score)
+  const eligible = scored.filter((m) => m.score >= MIN_SCORE);
+  if (eligible.length === 0) return [];
+
+  // Only return the strongest tier. A breed-specific query (e.g. "Schnauzer
+  // head shape") scores the on-breed image higher, so we must NOT also surface
+  // a weaker, off-breed match (e.g. a round Shih Tzu) — a wrong reference is
+  // worse than none. Equal-top matches (a genuinely ambiguous query) still pass.
+  const best = Math.max(...eligible.map((m) => m.score));
+  return eligible
+    .filter((m) => m.score === best)
     .slice(0, maxResults);
 }

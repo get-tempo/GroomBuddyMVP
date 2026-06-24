@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import Markdown from 'react-markdown';
 import { GROOM_STEPS } from '@/data/groom-steps';
 import { logEvent, getSessionId } from '@/lib/analytics';
 
 // ============================================================
 // Grooming Buddy — single-screen state machine (per the handoff).
-// Screens: intro · home · steps · detail · quick · photo · progress(Den)
+// Screens: intro · home · steps · detail · quick · progress(Den)
 // Overlays: safety · listening
 // Pixel-ported from the Claude Design prototype; tokens via CSS vars.
 // ============================================================
@@ -26,8 +29,25 @@ const FFB = 'var(--font-body)'; // Nunito
 const STRIPES =
   'repeating-linear-gradient(45deg,#EFE4D2,#EFE4D2 9px,#E6D8C2 9px,#E6D8C2 18px)';
 
-type Screen = 'intro' | 'home' | 'steps' | 'detail' | 'quick' | 'photo' | 'progress';
-type QuickAction = null | 'next' | 'how' | 'ok' | 'showme' | 'free';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Compact markdown styling so Buddy's **bold**/lists/headings render in-bubble
+// instead of showing raw asterisks. Images/links are intentionally dropped:
+// the only real images come from the reference-image tool, never from text.
+const MD: Record<string, (p: any) => React.ReactElement> = {
+  p: (p) => <p style={{ margin: '0 0 8px' }} {...p} />,
+  ul: (p) => <ul style={{ margin: '4px 0 8px', paddingLeft: 18 }} {...p} />,
+  ol: (p) => <ol style={{ margin: '4px 0 8px', paddingLeft: 18 }} {...p} />,
+  li: (p) => <li style={{ margin: '2px 0' }} {...p} />,
+  strong: (p) => <strong style={{ fontWeight: 800 }} {...p} />,
+  h1: (p) => <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, margin: '6px 0 4px' }} {...p} />,
+  h2: (p) => <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, margin: '6px 0 4px' }} {...p} />,
+  h3: (p) => <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, margin: '6px 0 4px' }} {...p} />,
+  a: (p) => <span {...p} />, // show link text, never a clickable/navigable URL
+  code: (p) => <code style={{ background: 'var(--neutral-fill)', padding: '1px 4px', borderRadius: 4 }} {...p} />,
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+type Screen = 'intro' | 'home' | 'steps' | 'detail' | 'quick' | 'progress';
 
 // ---------- tiny inline icons ----------
 function ChevronR({ size = 18 }: { size?: number }) {
@@ -52,15 +72,6 @@ function MicIcon({ size = 24 }: { size?: number }) {
     </svg>
   );
 }
-function CameraIcon({ stroke = INK, size = 22 }: { stroke?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="6" width="18" height="13" rx="3" stroke={stroke} strokeWidth="2.2" />
-      <circle cx="12" cy="12.5" r="3.3" stroke={stroke} strokeWidth="2.2" />
-    </svg>
-  );
-}
-
 // ---------- mic button ----------
 function Mic({ big, onClick }: { big?: boolean; onClick: () => void }) {
   const d = big ? 54 : 50;
@@ -78,76 +89,36 @@ function Mic({ big, onClick }: { big?: boolean; onClick: () => void }) {
   );
 }
 
-// ---------- a Buddy chat bubble with avatar ----------
-function BuddyBubble({ children, soft }: { children: React.ReactNode; soft?: boolean }) {
-  return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', animation: 'gbPop .3s ease' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={MASCOT} alt="Buddy" style={{ flex: 'none', width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-      <div style={{ background: soft ? 'var(--primary-soft)' : '#fff', border: BORDER, borderRadius: 16, borderTopLeftRadius: 4, padding: '12px 13px', boxShadow: HARD2 }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export default function BuddyApp() {
   const [screen, setScreen] = useState<Screen>('intro');
   const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
   const [done, setDone] = useState<boolean[]>(Array(GROOM_STEPS.length).fill(false));
   const [selStep, setSelStep] = useState(0);
   const [breed, setBreed] = useState('Goldendoodle'); // set by the breed chips on Home
-  const [quickAction, setQuickAction] = useState<QuickAction>(null);
-  const [quickSent, setQuickSent] = useState(false);
-  const [quickInput, setQuickInput] = useState('');
-  const [quickReply, setQuickReply] = useState<string | null>(null);
-  const [quickImages, setQuickImages] = useState<{ url: string; caption: string }[]>([]);
-  const [quickLoading, setQuickLoading] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
   const [showListening, setShowListening] = useState(false);
   const [prevScreen, setPrevScreen] = useState<Screen>('home');
 
-  // photo coaching
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [photoReply, setPhotoReply] = useState<string | null>(null);
-  const [photoLoading, setPhotoLoading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  // session "portfolio" preview (photos checked this session) + survey overlay
-  const [photos, setPhotos] = useState<string[]>([]);
+  // session "portfolio" preview (no writer yet; Den shows the empty state) + survey overlay
+  const [photos] = useState<string[]>([]);
   const [showSurvey, setShowSurvey] = useState(false);
-  const triggerCamera = () => fileRef.current?.click();
 
-  // Deep-link to a screen via ?s=home|steps|detail|quick|photo|progress
+  // Deep-link to a screen via ?s=home|steps|detail|quick|progress
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
   useEffect(() => {
     const s = new URLSearchParams(window.location.search).get('s') as Screen | null;
-    const valid: Screen[] = ['intro', 'home', 'steps', 'detail', 'quick', 'photo', 'progress'];
+    const valid: Screen[] = ['intro', 'home', 'steps', 'detail', 'quick', 'progress'];
     if (s && valid.includes(s)) setScreen(s);
   }, []);
 
   const doneCount = done.filter(Boolean).length;
-  const ctx = `Dog: a ${breed}. Full groom, teddy-bear face. Current step: ${GROOM_STEPS[stepIdx].t}.`;
-
-  // ---- real Buddy call (falls back to canned on error / no key) ----
-  async function askBuddy(mode: string, text: string, imageDataUrl?: string) {
-    const res = await fetch('/api/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, text, context: ctx, imageDataUrl }),
-    });
-    if (!res.ok) throw new Error('ask failed');
-    return (await res.json()) as { text: string; images: { url: string; caption: string }[] };
-  }
 
   // ---- navigation / handlers (mirror the prototype) ----
   const letsGroom = () => setScreen('home');
   const goHome = () => setScreen('home');
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: GROOM_STEPS[i].t }); };
-  const resetQuick = () => { setQuickAction(null); setQuickSent(false); setQuickInput(''); setQuickReply(null); setQuickImages([]); };
-  const setQuickMode = () => { resetQuick(); setScreen('quick'); };
-  const backToQuick = () => setScreen('quick');
+  const setQuickMode = () => setScreen('quick');
   const gotItNext = () => {
     const d = done.slice();
     d[stepIdx] = true;
@@ -163,43 +134,6 @@ export default function BuddyApp() {
   const triggerSafety = () => { setShowSafety(true); logEvent('safety', {}); };
   const stoppedGetHelp = () => { setShowSafety(false); setScreen('home'); };
 
-  const pick = (a: QuickAction) => { setQuickAction(a); setQuickSent(false); setQuickReply(null); setQuickImages([]); setQuickInput(''); };
-
-  async function sendQuick(mode: string) {
-    setQuickSent(true);
-    setQuickLoading(true);
-    logEvent('quick_question', { mode, text: quickInput || defaultQuery(mode) });
-    try {
-      const r = await askBuddy(mode, quickInput || defaultQuery(mode));
-      setQuickReply(r.text);
-      setQuickImages(r.images || []);
-    } catch {
-      setQuickReply(null); // null => render the designed canned fallback
-    } finally {
-      setQuickLoading(false);
-    }
-  }
-
-  function openPhoto() { setScreen('photo'); }
-
-  async function onPhotoPicked(file: File) {
-    const url = URL.createObjectURL(file);
-    setPhotoUrl(url);
-    setPhotos((prev) => [url, ...prev]); // session portfolio preview
-    setPhotoReply(null);
-    setPhotoLoading(true);
-    logEvent('photo_check', {});
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      const r = await askBuddy('photo', '', dataUrl);
-      setPhotoReply(r.text);
-    } catch {
-      setPhotoReply(null);
-    } finally {
-      setPhotoLoading(false);
-    }
-  }
-
   return (
     <div className="app">
       {/* status-bar notch breathing room is built into each screen's top padding */}
@@ -214,50 +148,91 @@ export default function BuddyApp() {
         <Detail i={selStep} backToList={backToList} gotItNext={gotItNext} />
       )}
       {screen === 'quick' && (
-        <Quick
-          goHome={goHome} openPhoto={openPhoto} openListening={openListening}
-          quickAction={quickAction} quickSent={quickSent} quickInput={quickInput}
-          setQuickInput={setQuickInput} quickReply={quickReply} quickImages={quickImages}
-          quickLoading={quickLoading} pick={pick} sendQuick={sendQuick}
-          triggerSafety={triggerSafety} currentDoNext={GROOM_STEPS[stepIdx].doNext}
-          currentStepTitle={GROOM_STEPS[stepIdx].t}
-        />
-      )}
-      {screen === 'photo' && (
-        <Photo backToQuick={backToQuick} photoUrl={photoUrl} photoReply={photoReply} photoLoading={photoLoading} triggerCamera={triggerCamera} />
+        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
       {showListening && <Listening close={() => setShowListening(false)} />}
       {showSurvey && <Survey sessionId={getSessionId()} close={() => setShowSurvey(false)} />}
-
-      {/* hidden file input shared by the photo paths */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        hidden
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) { openPhoto(); onPhotoPicked(f); } if (fileRef.current) fileRef.current.value = ''; }}
-      />
     </div>
   );
 }
 
-function defaultQuery(mode: string) {
-  if (mode === 'how') return 'get a clean teddy-bear face';
-  if (mode === 'ok') return "tell me what you're seeing";
-  if (mode === 'showme') return 'a finished teddy-bear face';
-  return 'help me out';
-}
-
-async function fileToDataUrl(file: File): Promise<string> {
+async function fileToDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result as string);
     r.onerror = reject;
     r.readAsDataURL(file);
+  });
+}
+
+// iPhones shoot HEIC by default, and most browsers (and the vision model) can't
+// read it. Convert HEIC -> JPEG in the browser before we preview or send, so a
+// photo from any phone just works. Non-HEIC files pass straight through.
+async function fileToImageDataUrl(file: File): Promise<{ url: string; mediaType: string }> {
+  const isHeic = /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+  if (isHeic) {
+    try {
+      const heic2any = (await import('heic2any')).default;
+      const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      const blob = (Array.isArray(out) ? out[0] : out) as Blob;
+      return { url: await fileToDataUrl(blob), mediaType: 'image/jpeg' };
+    } catch {
+      // Conversion failed: fall back to the raw file rather than dropping it.
+    }
+  }
+  return { url: await fileToDataUrl(file), mediaType: file.type || 'image/jpeg' };
+}
+
+// Free, instant, on-device photo quality check (no AI, no network). Flags only
+// CLEARLY dark or blurry shots so we can nudge a retake. Thresholds are
+// deliberately lenient — this never blocks sending, it just suggests. Tune if
+// it over- or under-fires on real salon photos.
+async function analyzeImage(dataUrl: string): Promise<{ dark: boolean; blurry: boolean }> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.min(1, 256 / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve({ dark: false, blurry: false });
+      ctx.drawImage(img, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
+
+      const gray = new Float64Array(w * h);
+      let sum = 0;
+      for (let i = 0; i < w * h; i++) {
+        const lum = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+        gray[i] = lum;
+        sum += lum;
+      }
+      const mean = sum / (w * h); // 0 (black) .. 255 (white)
+
+      // Sharpness = variance of the Laplacian. Low variance => soft/blurry.
+      let lSum = 0;
+      let lSq = 0;
+      let n = 0;
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = y * w + x;
+          const lap = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w];
+          lSum += lap;
+          lSq += lap * lap;
+          n++;
+        }
+      }
+      const lVar = n ? lSq / n - (lSum / n) ** 2 : 0;
+
+      resolve({ dark: mean < 50, blurry: lVar < 40 });
+    };
+    img.onerror = () => resolve({ dark: false, blurry: false });
+    img.src = dataUrl;
   });
 }
 
@@ -305,8 +280,9 @@ function Home({ goDen, setQuickMode, openListening, pickBreed }: { goDen: () => 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '34px 18px 10px' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img onClick={goDen} src={MASCOT} alt="Buddy" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff', cursor: 'pointer' }} />
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div onClick={goDen} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green)', border: BORDER, borderRadius: 999, padding: '5px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff', cursor: 'pointer' }}>7🔥</div>
+        <div onClick={goDen} style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted-2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>preview</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green)', border: BORDER, borderRadius: 999, padding: '5px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff' }}>7🔥</div>
         </div>
       </div>
       {/* switcher */}
@@ -462,195 +438,340 @@ function Detail({ i, backToList, gotItNext }: { i: number; backToList: () => voi
 }
 
 // ============================================================
-// SCREEN 5 — Quick mode
+// SCREEN 5 — Quick mode (real Buddy chat, streamed from /api/chat)
 // ============================================================
 type QuickProps = {
-  goHome: () => void; openPhoto: () => void; openListening: () => void;
-  quickAction: QuickAction; quickSent: boolean; quickInput: string;
-  setQuickInput: (s: string) => void; quickReply: string | null;
-  quickImages: { url: string; caption: string }[]; quickLoading: boolean;
-  pick: (a: QuickAction) => void; sendQuick: (mode: string) => void;
-  triggerSafety: () => void; currentDoNext: string; currentStepTitle: string;
+  goHome: () => void;
+  triggerSafety: () => void;
+  breed: string;
 };
-function Quick(p: QuickProps) {
-  const tile = (label: React.ReactNode, onClick: () => void, bg: string, glyph: React.ReactNode, full?: boolean) => (
-    <div onClick={onClick} style={{ gridColumn: full ? '1 / -1' : undefined, background: bg, border: BORDER, borderRadius: 16, padding: '14px 12px', boxShadow: HARD, display: 'flex', flexDirection: full ? 'row' : 'column', alignItems: full ? 'center' : undefined, gap: full ? 10 : 6, cursor: 'pointer' }}>
-      {glyph}
-      <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, lineHeight: 1.05 }}>{label}</span>
-    </div>
+
+function QuickChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'red' }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 'none', background: tone === 'red' ? 'var(--red-tint)' : '#fff', border: BORDER,
+        borderRadius: 999, padding: '8px 13px', fontFamily: FFD, fontWeight: 800, fontSize: 13,
+        color: tone === 'red' ? 'var(--red-text)' : INK, boxShadow: HARD2, cursor: 'pointer', whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
   );
-  const inputRow = (label: string, color: string, placeholder: string, btnBg: string, btnColor: string, btnLabel: string, mode: string) => (
-    <div style={{ marginTop: 14, animation: 'gbPop .3s ease' }}>
-      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color, marginBottom: 7 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 9 }}>
-        <input className="gbin" value={p.quickInput} onChange={(e) => p.setQuickInput(e.target.value)} placeholder={placeholder} onKeyDown={(e) => { if (e.key === 'Enter') p.sendQuick(mode); }} style={{ flex: 1, background: '#fff', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: INK, fontFamily: FFB, outline: 'none' }} />
-        <button onClick={() => p.sendQuick(mode)} style={{ flex: 'none', background: btnBg, border: BORDER, borderRadius: 14, padding: '0 16px', fontFamily: FFD, fontWeight: 800, color: btnColor, cursor: 'pointer' }}>{btnLabel}</button>
+}
+
+function ChatBubble({ role, children }: { role: string; children: React.ReactNode }) {
+  if (role === 'user') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', animation: 'gbPop .3s ease' }}>
+        <div style={{ maxWidth: '82%', background: 'var(--primary)', border: BORDER, borderRadius: 16, borderBottomRightRadius: 4, padding: '10px 12px', fontSize: 14, fontWeight: 700, color: INK, boxShadow: HARD2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', animation: 'gbPop .3s ease' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={MASCOT} alt="Buddy" style={{ flex: 'none', width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
+      <div style={{ maxWidth: '82%', background: '#fff', border: BORDER, borderRadius: 16, borderTopLeftRadius: 4, padding: '11px 13px', fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1.45, boxShadow: HARD2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {children}
       </div>
     </div>
   );
+}
+
+// Claude-web-style clarifying questions: up to 3 cards, each a few tap options
+// plus an "Other" free-text, with a Skip for the student who wants to go quick.
+type AskQ = { id: string; question: string; options: string[] };
+function QuestionCards({
+  questions,
+  onSubmit,
+  onSkip,
+}: {
+  questions: AskQ[];
+  onSubmit: (answers: { id: string; question: string; answer: string }[]) => void;
+  onSkip: () => void;
+}) {
+  const [sel, setSel] = useState<Record<string, string>>({});
+  const [otherOn, setOtherOn] = useState<Record<string, boolean>>({});
+  const [otherText, setOtherText] = useState<Record<string, string>>({});
+  const [sent, setSent] = useState(false);
+
+  const answerOf = (q: AskQ) => (otherOn[q.id] ? (otherText[q.id] || '').trim() : sel[q.id] || '');
+  const allAnswered = questions.every((q) => answerOf(q).length > 0);
+
+  const chip = (q: AskQ, label: string, active: boolean, onClick: () => void) => (
+    <button
+      key={label}
+      disabled={sent}
+      onClick={onClick}
+      style={{ background: active ? 'var(--primary)' : '#fff', border: BORDER, borderRadius: 999, padding: '7px 12px', fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: INK, cursor: sent ? 'default' : 'pointer' }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--primary-soft)', border: BORDER, borderRadius: 14, padding: 13, boxShadow: HARD2 }}>
+      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--gold-deep)' }}>Quick bit of context so I&apos;m actually useful 👇</div>
+      {questions.map((q) => (
+        <div key={q.id}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: INK, marginBottom: 6 }}>{q.question}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {q.options.map((opt) =>
+              chip(q, opt, !otherOn[q.id] && sel[q.id] === opt, () => {
+                setSel((s) => ({ ...s, [q.id]: opt }));
+                setOtherOn((o) => ({ ...o, [q.id]: false }));
+              }),
+            )}
+            {chip(q, 'Other', !!otherOn[q.id], () => setOtherOn((o) => ({ ...o, [q.id]: !o[q.id] })))}
+          </div>
+          {otherOn[q.id] && (
+            <input
+              autoFocus
+              disabled={sent}
+              value={otherText[q.id] || ''}
+              onChange={(e) => setOtherText((t) => ({ ...t, [q.id]: e.target.value }))}
+              placeholder="Type your answer…"
+              style={{ marginTop: 6, width: '100%', background: '#fff', border: BORDER, borderRadius: 12, padding: 10, fontWeight: 700, fontSize: 13, color: INK, fontFamily: FFB, outline: 'none' }}
+            />
+          )}
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          onClick={() => { if (allAnswered && !sent) { setSent(true); onSubmit(questions.map((q) => ({ id: q.id, question: q.question, answer: answerOf(q) }))); } }}
+          disabled={!allAnswered || sent}
+          style={{ flex: 1, background: 'var(--green)', border: BORDER, borderRadius: 12, padding: 11, fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff', boxShadow: HARD2, cursor: allAnswered && !sent ? 'pointer' : 'default', opacity: allAnswered && !sent ? 1 : 0.5 }}
+        >
+          {sent ? 'Thanks!' : 'Send answers'}
+        </button>
+        <button
+          onClick={() => { if (!sent) { setSent(true); onSkip(); } }}
+          disabled={sent}
+          style={{ flex: 'none', background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 800, fontSize: 13, color: 'var(--muted-2)', cursor: sent ? 'default' : 'pointer' }}
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Quick({ goHome, triggerSafety, breed }: QuickProps) {
+  // Lightweight session context the model gets (curriculum RAG is added server-side).
+  const context = `Dog: a ${breed}.`;
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: '/api/chat', body: { context } }),
+    [context],
+  );
+  // sendAutomaticallyWhen: once the student answers the askQuestions card, the
+  // tool result is filled and the model auto-continues to the feedback.
+  const { messages, sendMessage, status, addToolResult } = useChat({
+    transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  });
+
+  const [input, setInput] = useState('');
+  const [pending, setPending] = useState<{ url: string; mediaType: string; name: string; dark: boolean; blurry: boolean } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const busy = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages, busy]);
+
+  function deliver(text: string) {
+    const files = pending
+      ? [{ type: 'file' as const, mediaType: pending.mediaType, url: pending.url, filename: pending.name }]
+      : undefined;
+    if (!text && !files) return;
+    sendMessage({ text, files });
+    logEvent('quick_question', { text, hasPhoto: !!files });
+    setInput('');
+    setPending(null);
+  }
+  const send = () => { if (!busy) deliver(input.trim()); };
+  const prefill = (s: string) => { setInput(s); setTimeout(() => inputRef.current?.focus(), 0); };
+
+  const hasInput = input.trim().length > 0 || !!pending;
 
   return (
     <div className="scr">
+      {/* mode toggle */}
       <div style={{ padding: '34px 18px 0' }}>
         <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-          <div onClick={p.goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
+          <div onClick={goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
           <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick question</div>
         </div>
       </div>
-      <div className="gbsc scroll" style={{ padding: '14px 18px 16px' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={MASCOT} alt="Buddy" style={{ flex: 'none', width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-          <div style={{ background: '#fff', border: BORDER, borderRadius: 16, borderTopLeftRadius: 4, padding: '11px 13px', fontSize: 14, fontWeight: 700, color: INK, boxShadow: HARD2 }}>I&apos;m right here — tap a button, snap a pic, or just talk to me. What&apos;s up?</div>
-        </div>
 
-        {/* photo incentive */}
-        <div onClick={p.openPhoto} style={{ marginTop: 14, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: '13px 14px', boxShadow: HARD, display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }}>
-          <div style={{ flex: 'none', width: 40, height: 40, borderRadius: 11, background: INK, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CameraIcon stroke="var(--primary)" /></div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, lineHeight: 1.05 }}>📸 Show me & get specific advice</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold-deep)' }}>The more I can see, the better I can help. Snap a pic anytime.</div>
-          </div>
-        </div>
+      {/* thread */}
+      <div ref={scrollRef} className="gbsc scroll" style={{ padding: '14px 18px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <ChatBubble role="assistant">
+          I&apos;m right here — ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?
+        </ChatBubble>
 
-        {/* action grid */}
-        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {tile('What do I do next?', () => p.pick('next'), p.quickAction === 'next' ? 'var(--primary)' : '#fff',
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h12M12 6l6 6-6 6" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>)}
-          {tile(<>How&apos;s it looking? 📷</>, p.openPhoto, '#fff', <CameraIcon />)}
-          {tile('How do I…', () => p.pick('how'), p.quickAction === 'how' ? 'var(--primary)' : '#fff',
-            <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 18, color: INK }}>?</span>)}
-          {tile('Wait — is this okay?', () => p.pick('ok'), p.quickAction === 'ok' ? 'var(--red-tint)' : '#fff',
-            <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 18, color: 'var(--red-text)' }}>!</span>)}
-          {tile('Show me one (reference photo)', () => p.pick('showme'), p.quickAction === 'showme' ? 'var(--primary)' : '#fff', <CameraIcon />, true)}
-        </div>
-
-        {/* contextual results */}
-        {p.quickAction === 'next' && (
-          <div style={{ marginTop: 14 }}>
-            <BuddyBubble soft>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-gold)', marginBottom: 3 }}>Next: {p.currentStepTitle.toLowerCase()}</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1.4 }}>{p.currentDoNext}</div>
-            </BuddyBubble>
-          </div>
-        )}
-
-        {p.quickAction === 'how' && !p.quickSent && inputRow('How do I… · tell me what', 'var(--muted-gold)', 'e.g. get a clean teddy-bear face', 'var(--primary)', INK, 'Ask', 'how')}
-        {p.quickAction === 'how' && p.quickSent && (
-          <div style={{ marginTop: 14 }}><BuddyBubble><Reply loading={p.quickLoading} reply={p.quickReply} canned="Comb the hair forward, then shape a round circle — tiny snips, comb, look. Curved shears, tips away from the eyes. Want me to show you a reference or look at a pic?" /></BuddyBubble></div>
-        )}
-
-        {p.quickAction === 'ok' && !p.quickSent && (
-          <div style={{ marginTop: 14, animation: 'gbPop .3s ease' }}>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--red-text)', marginBottom: 7 }}>Is this okay? · what&apos;s worrying you</div>
-            <div style={{ display: 'flex', gap: 9 }}>
-              <input className="gbin" value={p.quickInput} onChange={(e) => p.setQuickInput(e.target.value)} placeholder="tell me what you're seeing…" onKeyDown={(e) => { if (e.key === 'Enter') p.sendQuick('ok'); }} style={{ flex: 1, background: '#fff', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: INK, fontFamily: FFB, outline: 'none' }} />
-              <button onClick={() => p.sendQuick('ok')} style={{ flex: 'none', background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: '0 16px', fontFamily: FFD, fontWeight: 800, color: '#fff', cursor: 'pointer' }}>Ask</button>
-            </div>
-            <button onClick={p.triggerSafety} style={{ marginTop: 9, width: '100%', background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 11, fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--red-text)', cursor: 'pointer' }}>She yelped & pulled her paw away →</button>
-          </div>
-        )}
-        {p.quickAction === 'ok' && p.quickSent && (
-          <div style={{ marginTop: 14 }}><BuddyBubble><Reply loading={p.quickLoading} reply={p.quickReply} canned="Walk me through it. If she's hurting, bleeding, or really stressed, we pause — no question. Snap a pic and I'll take a look with you." /></BuddyBubble></div>
-        )}
-
-        {p.quickAction === 'showme' && !p.quickSent && inputRow('Show me one · describe what you want to see', 'var(--muted-gold)', 'e.g. a finished teddy-bear face', 'var(--primary)', INK, 'Show', 'showme')}
-        {p.quickAction === 'showme' && p.quickSent && (
-          <div style={{ marginTop: 14, animation: 'gbPop .3s ease' }}>
-            {p.quickImages.length > 0 ? (
-              p.quickImages.map((im, k) => (
-                <figure key={k} style={{ margin: k ? '10px 0 0' : 0 }}>
-                  <div style={{ border: BORDER, borderRadius: 14, overflow: 'hidden', boxShadow: HARD }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={im.url} alt={im.caption} style={{ width: '100%', display: 'block' }} />
+        {messages.map((m) => (
+          <ChatBubble key={m.id} role={m.role}>
+            {m.parts.map((part, i) => {
+              if (part.type === 'text') {
+                return part.text ? (
+                  <div key={i}>
+                    <Markdown components={MD} disallowedElements={['img']} unwrapDisallowed>
+                      {part.text}
+                    </Markdown>
                   </div>
-                  <figcaption style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-1)', marginTop: 8, textAlign: 'center' }}>{im.caption}</figcaption>
-                </figure>
-              ))
-            ) : (
-              <>
-                <div style={{ border: BORDER, borderRadius: 14, overflow: 'hidden', boxShadow: HARD }}>
-                  <div style={{ background: STRIPES, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ font: '600 11px ui-monospace,monospace', color: 'var(--muted-gold)', background: 'var(--cream)', padding: '4px 8px', borderRadius: 6, border: '1.5px solid var(--ink)' }}>reference: {p.quickInput || 'finished teddy-bear face'}</span>
+                ) : null;
+              }
+              if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={i} src={part.url} alt="your photo" style={{ width: '100%', maxWidth: 220, borderRadius: 12, border: BORDER2, display: 'block' }} />
+                );
+              }
+              if (part.type === 'tool-findReferenceImages' && part.state === 'output-available') {
+                const imgs = (part.output as Array<{ url: string; caption?: string }>) ?? [];
+                if (!Array.isArray(imgs) || imgs.length === 0) return null;
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {imgs.map((im, k) => (
+                      <figure key={k} style={{ margin: 0 }}>
+                        <div style={{ border: BORDER, borderRadius: 12, overflow: 'hidden' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={im.url} alt={im.caption ?? 'reference'} style={{ width: '100%', display: 'block' }} />
+                        </div>
+                        {im.caption && <figcaption style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-1)', marginTop: 5 }}>{im.caption}</figcaption>}
+                      </figure>
+                    ))}
                   </div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-1)', marginTop: 8, textAlign: 'center' }}>Round muzzle, soft cheeks, no corners at the eyes 🐾</div>
-              </>
-            )}
-          </div>
+                );
+              }
+              if (part.type === 'tool-askQuestions') {
+                if (part.state === 'input-available') {
+                  const qs = (part.input as { questions?: AskQ[] })?.questions ?? [];
+                  if (!qs.length) return null;
+                  return (
+                    <QuestionCards
+                      key={i}
+                      questions={qs}
+                      onSubmit={(answers) => addToolResult({ tool: 'askQuestions', toolCallId: part.toolCallId, output: { answers } })}
+                      onSkip={() => addToolResult({ tool: 'askQuestions', toolCallId: part.toolCallId, output: { skipped: true } })}
+                    />
+                  );
+                }
+                if (part.state === 'output-available') {
+                  const out = part.output as { answers?: { answer: string }[]; skipped?: boolean } | undefined;
+                  if (out?.skipped) {
+                    return <div key={i} style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-2)' }}>Skipped — giving you my best read.</div>;
+                  }
+                  if (out?.answers?.length) {
+                    return (
+                      <div key={i} style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted-1)', lineHeight: 1.45 }}>
+                        {out.answers.map((a, k) => <div key={k}>· {a.answer}</div>)}
+                      </div>
+                    );
+                  }
+                  return null;
+                }
+                return null;
+              }
+              return null;
+            })}
+          </ChatBubble>
+        ))}
+
+        {busy && messages[messages.length - 1]?.role !== 'assistant' && (
+          <ChatBubble role="assistant"><span style={{ fontWeight: 600, color: 'var(--muted-2)' }}>Buddy&apos;s thinking…</span></ChatBubble>
         )}
-        <div style={{ height: 8 }} />
+        <div style={{ height: 4 }} />
       </div>
-      <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <input className="gbin" value={p.quickAction === 'free' ? p.quickInput : ''} onFocus={() => p.pick('free')} onChange={(e) => p.setQuickInput(e.target.value)} placeholder="Or type it…" onKeyDown={(e) => { if (e.key === 'Enter') p.sendQuick('free'); }} style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: INK, fontFamily: FFB, outline: 'none' }} />
-        <Mic onClick={p.openListening} />
-      </div>
-      {p.quickAction === 'free' && p.quickSent && (
-        <div style={{ position: 'absolute', left: 18, right: 18, bottom: 86 }}><BuddyBubble><Reply loading={p.quickLoading} reply={p.quickReply} canned="I'm right here. Tell me the breed, the step, and what you're seeing, and I'll talk you through it." /></BuddyBubble></div>
-      )}
-    </div>
-  );
-}
 
-function Reply({ loading, reply, canned }: { loading: boolean; reply: string | null; canned: string }) {
-  if (loading) return <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-2)' }}>Buddy&apos;s thinking…</span>;
-  return <div style={{ fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1.45 }}>{reply ?? canned}</div>;
-}
-
-// ============================================================
-// SCREEN 6 — Photo coaching
-// ============================================================
-function Photo({ backToQuick, photoUrl, photoReply, photoLoading, triggerCamera }: { backToQuick: () => void; photoUrl: string | null; photoReply: string | null; photoLoading: boolean; triggerCamera: () => void }) {
-  return (
-    <div className="scr">
-      <div style={{ padding: '38px 18px 12px', borderBottom: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <ChevronL onClick={backToQuick} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={MASCOT} alt="Buddy" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-        <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, color: INK }}>Let&apos;s have a look together</span>
+      {/* suggestion chips — one-tap starts, no second box */}
+      <div className="gbsc" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 18px 0' }}>
+        <QuickChip label="What's next?" onClick={() => { if (!busy) { deliver('What should I do next?'); } }} />
+        <QuickChip label="How do I…" onClick={() => prefill('How do I ')} />
+        <QuickChip label="Is this okay?" onClick={() => prefill('Is this okay? ')} />
+        <QuickChip label="Show me a reference" onClick={() => prefill('Show me a reference photo of ')} />
+        <QuickChip label="🚨 Something's wrong" tone="red" onClick={triggerSafety} />
       </div>
-      <div className="gbsc scroll" style={{ padding: '16px 16px 22px', display: 'flex', flexDirection: 'column', gap: 13 }}>
-        <div style={{ border: BORDER, borderRadius: 16, overflow: 'hidden', boxShadow: HARD }}>
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="your photo" style={{ width: '100%', display: 'block' }} />
-          ) : (
-            <div style={{ background: STRIPES, height: 158, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <span style={{ font: '600 11px ui-monospace,monospace', color: 'var(--muted-gold)', background: 'var(--cream)', padding: '4px 8px', borderRadius: 6, border: '1.5px solid var(--ink)' }}>your photo</span>
-              <div style={{ position: 'absolute', right: 12, bottom: 12, background: 'var(--primary)', border: BORDER, borderRadius: 999, padding: '5px 12px', fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK }}>just now</div>
+
+      {/* attached-photo preview */}
+      {pending && (
+        <div style={{ padding: '8px 18px 0' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', border: BORDER, borderRadius: 12, padding: 6, boxShadow: HARD2 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pending.url} alt="attached" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, border: BORDER2 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>Photo ready</span>
+            <button onClick={() => setPending(null)} aria-label="Remove photo" style={{ border: 'none', background: 'transparent', fontWeight: 900, fontSize: 16, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+          {/* gentle, non-blocking nudge — you can always send anyway */}
+          {(pending.dark || pending.blurry) && (
+            <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: 'var(--red-text)' }}>
+              {pending.dark && pending.blurry
+                ? 'A bit dark and soft — more light and a steady hand help me see, but you can still send.'
+                : pending.dark
+                  ? 'A bit dark — more light helps me see, but you can still send.'
+                  : 'A little blurry — hold steady for a sharper one, but you can still send.'}
             </div>
           )}
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={MASCOT} alt="Buddy" style={{ flex: 'none', width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-          <div style={{ background: '#fff', border: BORDER, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, boxShadow: HARD }}>
-            {photoLoading ? (
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-2)' }}>Having a look…</div>
-            ) : photoReply ? (
-              <div style={{ fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.45 }}>{photoReply}</div>
-            ) : (
-              <>
-                <div style={{ fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.45 }}>Oh that&apos;s <b>coming along really nicely</b> — the muzzle&apos;s nice and round! 🎉</div>
-                <div style={{ height: 1, background: '#EADFCB', margin: '11px 0' }} />
-                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 8 }}><span style={{ color: 'var(--green)', fontWeight: 900, fontSize: 15 }}>✓</span><span style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>Cheeks are even — symmetry&apos;s looking good.</span></div>
-                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--coral)', fontWeight: 900, fontSize: 15 }}>→</span><span style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>One little tuft under the left eye — comb it down and take the tiniest snip. You&apos;ve got this.</span></div>
-              </>
-            )}
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--muted-2)' }}>
+            📸 Good light, fill the frame, hold steady. A front and a side shot help most.
           </div>
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-2)', textAlign: 'center' }}>No scores here — just the next small win.</div>
+      )}
+
+      {/* chat bar: [+] · input · mic/send */}
+      <div style={{ padding: '10px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={() => fileRef.current?.click()} aria-label="Add photo" style={{ flex: 'none', width: 44, height: 44, borderRadius: '50%', background: 'var(--neutral-fill)', border: BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: HARD2 }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
+        </button>
+        <input
+          ref={inputRef}
+          className="gbin"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask Buddy anything…"
+          onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
+          style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none' }}
+        />
+        <button
+          onClick={send}
+          disabled={!hasInput || busy}
+          aria-label="Send"
+          style={{ flex: 'none', width: 50, height: 50, borderRadius: '50%', background: 'var(--coral)', border: BORDER3, boxShadow: HARD2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasInput && !busy ? 'pointer' : 'default', opacity: hasInput && !busy ? 1 : 0.4 }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5l7 7-7 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
-      <div style={{ padding: '13px 16px 22px', borderTop: BORDER, background: '#fff', display: 'flex', gap: 10 }}>
-        <button onClick={triggerCamera} style={{ flex: 1, background: '#fff', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>Another angle</button>
-        <button onClick={backToQuick} style={{ flex: 1, background: 'var(--green)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>Looks good ✓</button>
-      </div>
+
+      {/* hidden picker behind the ➕ (camera on mobile, library on desktop) */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,.heic,.heif"
+        capture="environment"
+        hidden
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const { url, mediaType } = await fileToImageDataUrl(file); // handles HEIC
+            const q = await analyzeImage(url); // quick on-device light/blur check
+            setPending({ url, mediaType, name: file.name, dark: q.dark, blurry: q.blurry });
+          }
+          if (fileRef.current) fileRef.current.value = ''; // allow re-picking the same file
+        }}
+      />
     </div>
   );
 }
 
 // ============================================================
-// SCREEN 7 — Den (progress)
+// SCREEN 6 — Den (progress)
 // ============================================================
 // The Den is a labeled PREVIEW of progress (no accounts/persistence yet), so it
 // shows a few simple, fun, easy-to-follow facts only. Removed for now (kept in

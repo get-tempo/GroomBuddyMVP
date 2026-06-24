@@ -13,6 +13,9 @@
 .env*.local
 .env.local
 
+# curriculum source (school's own material; ingested into Supabase, not the repo)
+/curriculum/
+
 # misc
 .DS_Store
 *.pem
