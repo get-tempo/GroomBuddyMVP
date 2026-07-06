@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import { z } from 'zod';
-import { PLAN_MODEL } from '@/lib/model';
+import { MODEL, PLAN_MODEL } from '@/lib/model';
 import { PLAN_SYSTEM } from '@/lib/prompt';
 import { retrieveCurriculum } from '@/lib/rag';
 import { accessRequired, codeOk } from '@/lib/access';
@@ -106,14 +106,25 @@ export async function POST(req: Request) {
 
   const dog = `Dog: a ${b}. Coat condition: ${c || 'not specified'}. Desired style/length: ${s || 'not specified'}.`;
 
-  try {
-    const { text } = await generateText({
-      model: PLAN_MODEL,
+  const gen = (model: typeof MODEL) =>
+    generateText({
+      model,
       system,
       prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON array.`,
       // Headroom for 7-9 concise steps; the salvage parser tolerates a cut-off tail.
       maxOutputTokens: 3600,
     });
+
+  try {
+    // Fast scaffold model first; fall back to the main model if that slug is
+    // unavailable or errors, so a plan always builds.
+    let text: string;
+    try {
+      ({ text } = await gen(PLAN_MODEL));
+    } catch (fastErr) {
+      console.error('plan fast-model failed, falling back to main model:', fastErr);
+      ({ text } = await gen(MODEL));
+    }
     const steps = parseSteps(text);
     if (steps.length < 4) throw new Error(`only ${steps.length} valid steps parsed`);
     return Response.json({ steps: steps.slice(0, 12) });
