@@ -73,7 +73,7 @@ Most full grooms run roughly: bath & blow-dry -> full brush-out & de-mat -> clip
 
 SAFETY IS NON-NEGOTIABLE and must show up in the plan: brush/comb fully before any blade; never shave tight matting without an instructor; nails -> tiny tips, stop at the quick, a bleed is a get-a-person moment; check a hot blade often; pause the moment the dog is stressed or you see a wound/lump/skin issue and get a person. Bake these into the relevant steps' "watch" field.
 
-Produce 7 to 10 steps. For EACH step fill these fields, in Buddy's warm, plain, instructor-next-to-you voice (no textbook tone, no headings, short):
+Produce 7 to 9 steps. BE CONCISE: keep every field to ONE short sentence (roughly 12-20 words) a student can read at a glance on their phone. For EACH step fill these fields, in Buddy's warm, plain, instructor-next-to-you voice (no textbook tone, no headings, short):
 - t: the step title, a few words (e.g. "Clipper the body").
 - quickRead: one line, what this step is and why it matters for THIS dog.
 - doNext: the concrete action(s) to take now, in order, with the specific tool/blade/comb length for this coat + style.

@@ -10,7 +10,9 @@ import { accessRequired, codeOk } from '@/lib/access';
 // coat + style. Uses generateText + JSON parse (the same provider path as the
 // working chat) rather than generateObject, which the OpenRouter provider
 // doesn't reliably support for structured output.
-export const maxDuration = 30;
+// Generating a 7-9 step JSON plan takes longer than a chat reply, so give it
+// headroom over the 30s default (a full plan can run 15-40s on Sonnet).
+export const maxDuration = 60;
 
 // Mirrors the GroomStep shape the UI renders (data/groom-steps.ts).
 const stepSchema = z.object({
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
   system +=
     '\n\nOUTPUT FORMAT: Respond with ONLY a JSON object, no prose and no code fences, exactly:\n' +
     '{"steps":[{"t":"","quickRead":"","doNext":"","cue":"","good":"","watch":"","ref":""}]}\n' +
-    'Include 7-10 step objects. Every field is a non-empty string.';
+    'Include 7-9 step objects. Every field is a non-empty string, one short sentence.';
 
   const dog = `Dog: a ${b}. Coat condition: ${c || 'not specified'}. Desired style/length: ${s || 'not specified'}.`;
 
@@ -90,6 +92,8 @@ export async function POST(req: Request) {
       model: MODEL,
       system,
       prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON object.`,
+      // Enough for 7-9 concise steps; bounds cost and runaway generation.
+      maxOutputTokens: 2600,
     });
     const validated = planSchema.safeParse(parseSteps(text));
     if (!validated.success) throw new Error('plan did not match schema');
