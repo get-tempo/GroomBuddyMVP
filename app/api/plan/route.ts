@@ -24,7 +24,7 @@ const stepSchema = z.object({
   watch: z.string(),
   ref: z.string(),
 });
-const planSchema = z.object({ steps: z.array(stepSchema).min(4).max(12) });
+type Step = z.infer<typeof stepSchema>;
 
 // Keep the free-text intake bounded (cost/abuse) before any model work.
 const MAX_FIELD = 120;
@@ -39,15 +39,34 @@ function badRequest(message: string) {
   });
 }
 
-// Pull a JSON object out of the model's text, tolerating code fences or stray prose.
-function parseSteps(text: string): unknown {
-  let s = text.trim();
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) s = fence[1].trim();
-  const a = s.indexOf('{');
-  const b = s.lastIndexOf('}');
-  if (a >= 0 && b > a) s = s.slice(a, b + 1);
-  return JSON.parse(s);
+// Salvage the step objects from the model's text. We scan for balanced { } blocks
+// and keep the ones that validate as a step, so it's robust to code fences, stray
+// prose, and a truncated final object (that block won't balance -> skipped) rather
+// than throwing the whole plan away. Works whether the model wraps the steps in
+// {"steps":[...]} or returns a bare [...] array.
+function parseSteps(text: string): Step[] {
+  const steps: Step[] = [];
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '{') {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try {
+          const parsed = stepSchema.safeParse(JSON.parse(text.slice(start, i + 1)));
+          if (parsed.success) steps.push(parsed.data);
+        } catch {
+          // not a JSON object / not a step — skip it
+        }
+        start = -1;
+      }
+    }
+  }
+  return steps;
 }
 
 export async function POST(req: Request) {
@@ -81,8 +100,8 @@ export async function POST(req: Request) {
   if (curriculum) system += `\n\nRELEVANT CURRICULUM:\n${curriculum}`;
   // Explicit output contract for generateText.
   system +=
-    '\n\nOUTPUT FORMAT: Respond with ONLY a JSON object, no prose and no code fences, exactly:\n' +
-    '{"steps":[{"t":"","quickRead":"","doNext":"","cue":"","good":"","watch":"","ref":""}]}\n' +
+    '\n\nOUTPUT FORMAT: Respond with ONLY a JSON array of step objects, no prose and no code fences, exactly:\n' +
+    '[{"t":"","quickRead":"","doNext":"","cue":"","good":"","watch":"","ref":""}, ...]\n' +
     'Include 7-9 step objects. Every field is a non-empty string, one short sentence.';
 
   const dog = `Dog: a ${b}. Coat condition: ${c || 'not specified'}. Desired style/length: ${s || 'not specified'}.`;
@@ -91,13 +110,13 @@ export async function POST(req: Request) {
     const { text } = await generateText({
       model: MODEL,
       system,
-      prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON object.`,
-      // Enough for 7-9 concise steps; bounds cost and runaway generation.
-      maxOutputTokens: 2600,
+      prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON array.`,
+      // Headroom for 7-9 concise steps; the salvage parser tolerates a cut-off tail.
+      maxOutputTokens: 3600,
     });
-    const validated = planSchema.safeParse(parseSteps(text));
-    if (!validated.success) throw new Error('plan did not match schema');
-    return Response.json({ steps: validated.data.steps });
+    const steps = parseSteps(text);
+    if (steps.length < 4) throw new Error(`only ${steps.length} valid steps parsed`);
+    return Response.json({ steps: steps.slice(0, 12) });
   } catch (e) {
     console.error('plan generation failed:', e);
     // The client shows a retry on a non-200.
