@@ -20,3 +20,10 @@ const openrouter = createOpenRouter({
 const MODEL_SLUG = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-4.5';
 
 export const MODEL = openrouter(MODEL_SLUG);
+
+// The guided-groom plan is a fast scaffold (the per-step chat carries the depth),
+// so it runs on a quicker/cheaper model to cut the "building your plan" wait.
+// Override with OPENROUTER_PLAN_MODEL; set it to the main slug for richer plans.
+const PLAN_MODEL_SLUG = process.env.OPENROUTER_PLAN_MODEL ?? 'anthropic/claude-3.5-haiku';
+
+export const PLAN_MODEL = openrouter(PLAN_MODEL_SLUG);

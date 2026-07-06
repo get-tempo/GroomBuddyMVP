@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
+import { findStepVideo } from '@/lib/videoBank';
 import { logEvent, getSessionId } from '@/lib/analytics';
 
 // ============================================================
@@ -74,6 +75,8 @@ export default function BuddyApp() {
   const [done, setDone] = useState<boolean[]>(Array(GROOM_STEPS.length).fill(false));
   const [selStep, setSelStep] = useState(0);
   const [breed, setBreed] = useState('Goldendoodle'); // the dog on the table (set at intake)
+  const [dog, setDog] = useState<Intake | null>(null); // full intake, for step-chat context
+  const [askStep, setAskStep] = useState<{ ctx: string; title: string } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
@@ -115,13 +118,26 @@ export default function BuddyApp() {
   const startGroom = () => { setPlanError(false); setScreen('setup'); }; // full-groom intake
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: plan[i]?.t }); };
-  const setQuickMode = () => setScreen('quick');
+  // Generic chat (from the routing screen / mode toggle): no step context.
+  const setQuickMode = () => { setAskStep(null); setScreen('quick'); };
+  // "Ask Buddy about this step": open the chat pre-loaded with the step + dog.
+  const askAboutStep = (i: number) => {
+    const st = plan[i];
+    const who = dog ? `a ${dog.breed}, coat: ${dog.coat}, going for ${dog.style}` : `a ${breed}`;
+    setAskStep({
+      title: st.t,
+      ctx: `The student is doing a full guided groom on ${who} and is on step ${i + 1} of ${plan.length}: "${st.t}" (${st.quickRead}). Answer about THIS step specifically. They may send a photo of their progress on it.`,
+    });
+    logEvent('ask_about_step', { step: i + 1, title: st.t });
+    setScreen('quick');
+  };
 
   // Build the tailored plan from the intake, then drop into the step list.
   const buildPlan = async (intake: Intake) => {
     setPlanLoading(true);
     setPlanError(false);
     setBreed(intake.breed);
+    setDog(intake);
     try {
       const r = await fetch('/api/plan', {
         method: 'POST',
@@ -174,10 +190,10 @@ export default function BuddyApp() {
         <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
       )}
       {screen === 'detail' && (
-        <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} backToList={backToList} gotItNext={gotItNext} />
+        <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} backToList={backToList} gotItNext={gotItNext} onAsk={() => askAboutStep(selStep)} />
       )}
       {screen === 'quick' && (
-        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
+        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} askStep={askStep} />
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
@@ -557,8 +573,11 @@ function Steps({ breed, steps, doneCount, done, stepIdx, goHome, openDetail, set
 // ============================================================
 // SCREEN 4 — Step detail (core value screen)
 // ============================================================
-function Detail({ step, i, total, backToList, gotItNext }: { step: GroomStep; i: number; total: number; backToList: () => void; gotItNext: () => void }) {
+function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step: GroomStep; i: number; total: number; breed: string; backToList: () => void; gotItNext: () => void; onAsk: () => void }) {
   const d = step;
+  // Show an approved technique video for this step if one clearly matches;
+  // otherwise show nothing (no empty "reference goes here" placeholder).
+  const video = findStepVideo(`${d.t} ${d.ref} ${breed}`);
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -590,11 +609,23 @@ function Detail({ step, i, total, backToList, gotItNext }: { step: GroomStep; i:
             <div style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>{d.cue}</div>
           </div>
         </div>
-        <div style={{ border: BORDER, borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ background: STRIPES, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ font: '600 11px ui-monospace,monospace', color: 'var(--muted-gold)', background: 'var(--cream)', padding: '4px 8px', borderRadius: 6, border: '1.5px solid var(--ink)' }}>reference: {d.ref}</span>
-          </div>
-        </div>
+        {video && (
+          <figure style={{ margin: 0 }}>
+            <div style={{ border: BORDER, borderRadius: 14, overflow: 'hidden', position: 'relative', paddingTop: '56.25%', background: '#000' }}>
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}`}
+                title={video.title}
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              />
+            </div>
+            <figcaption style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-1)', marginTop: 6 }}>
+              ▶ {video.title}{video.duration ? ` · ${video.duration}` : ''}
+            </figcaption>
+          </figure>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1, background: 'var(--green-tint)', border: BORDER, borderRadius: 14, padding: 12 }}>
             <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--green-text)' }}>Good looks like</div>
@@ -605,6 +636,10 @@ function Detail({ step, i, total, backToList, gotItNext }: { step: GroomStep; i:
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red-text-2)', lineHeight: 1.35, marginTop: 3 }}>{d.watch}</div>
           </div>
         </div>
+        {/* Depth on demand: contextual chat about THIS step (can send a photo). */}
+        <button onClick={onAsk} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>
+          💬 Ask Buddy about this step
+        </button>
       </div>
       <div style={{ padding: '12px 16px 22px', borderTop: BORDER, background: '#fff', display: 'flex', gap: 10 }}>
         <button onClick={backToList} style={{ flex: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: '13px 16px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>‹ Steps</button>
@@ -621,6 +656,8 @@ type QuickProps = {
   goHome: () => void;
   triggerSafety: () => void;
   breed: string;
+  // When opened via "Ask Buddy about this step", the step + dog context and title.
+  askStep: { ctx: string; title: string } | null;
 };
 
 function QuickChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'red' }) {
@@ -737,9 +774,10 @@ function QuestionCards({
   );
 }
 
-function Quick({ goHome, triggerSafety, breed }: QuickProps) {
+function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
   // Lightweight session context the model gets (curriculum RAG is added server-side).
-  const context = `Dog: a ${breed}.`;
+  // When opened from a step, carry the richer step + dog context instead.
+  const context = askStep ? askStep.ctx : `Dog: a ${breed}.`;
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -797,7 +835,11 @@ function Quick({ goHome, triggerSafety, breed }: QuickProps) {
       {/* thread */}
       <div ref={scrollRef} className="gbsc scroll" style={{ padding: '14px 18px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <ChatBubble role="assistant">
-          I&apos;m right here — ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?
+          {askStep ? (
+            <>You&apos;re on <strong>{askStep.title}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at and I&apos;ll take a look.</>
+          ) : (
+            <>I&apos;m right here — ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</>
+          )}
         </ChatBubble>
 
         {messages.map((m) => (

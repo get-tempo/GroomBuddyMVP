@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import { z } from 'zod';
-import { MODEL } from '@/lib/model';
+import { PLAN_MODEL } from '@/lib/model';
 import { PLAN_SYSTEM } from '@/lib/prompt';
 import { retrieveCurriculum } from '@/lib/rag';
 import { accessRequired, codeOk } from '@/lib/access';
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
   try {
     const { text } = await generateText({
-      model: MODEL,
+      model: PLAN_MODEL,
       system,
       prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON array.`,
       // Headroom for 7-9 concise steps; the salvage parser tolerates a cut-off tail.
