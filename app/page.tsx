@@ -401,20 +401,35 @@ function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGro
 // SCREEN 2b — Guided intake: breed + coat + style -> build the plan
 // ============================================================
 const BREEDS = ['Goldendoodle', 'Labradoodle', 'Poodle', 'Shih Tzu', 'Yorkie', 'Maltese', 'Bichon', 'Schnauzer', 'Cocker Spaniel', 'Doodle mix'];
-const COATS = ['Clean & brushed', 'Needs a bath', 'A few mats', 'Matted to the skin'];
+// Coat = matting level (what actually changes the plan + safety). A bath is
+// assumed for every groom, so it's not a choice here.
+const COATS = ['No mats, smooth', 'A few tangles', 'Matted in spots', 'Matted to the skin'];
 const STYLES = ['Short & easy', 'Medium teddy', 'Longer & fluffy', 'Breed-standard'];
+const OTHER = '__other';
 
 function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (i: Intake) => void; loading: boolean; error: boolean }) {
   const [breed, setBreed] = useState('');
   const [breedOther, setBreedOther] = useState('');
   const [coat, setCoat] = useState('');
+  const [coatOther, setCoatOther] = useState('');
   const [style, setStyle] = useState('');
-  const otherOn = breed === '__other';
-  const finalBreed = otherOn ? breedOther.trim() : breed;
-  const ready = !!finalBreed && !!coat && !!style && !loading;
+  const [styleOther, setStyleOther] = useState('');
+  const finalBreed = breed === OTHER ? breedOther.trim() : breed;
+  const finalCoat = coat === OTHER ? coatOther.trim() : coat;
+  const finalStyle = style === OTHER ? styleOther.trim() : style;
+  const ready = !!finalBreed && !!finalCoat && !!finalStyle && !loading;
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
     <div onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
+  );
+  const otherInput = (val: string, set: (v: string) => void, placeholder: string) => (
+    <input
+      value={val}
+      onChange={(e) => set(e.target.value)}
+      placeholder={placeholder}
+      autoCapitalize="none"
+      style={{ width: '100%', marginTop: 10, background: '#fff', border: BORDER, borderRadius: 14, padding: '12px 14px', fontFamily: FFB, fontWeight: 700, fontSize: 15, color: INK, boxShadow: HARD2, outline: 'none' }}
+    />
   );
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div style={{ marginTop: 20 }}>
@@ -448,23 +463,19 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
       <div className="gbsc scroll" style={{ padding: '4px 18px 18px' }}>
         <Section title="Breed">
           {BREEDS.map((b) => chip(b, breed === b, () => setBreed(b)))}
-          {chip('Other / mixed', otherOn, () => setBreed('__other'))}
+          {chip('Other / mixed', breed === OTHER, () => setBreed(OTHER))}
         </Section>
-        {otherOn && (
-          <input
-            value={breedOther}
-            onChange={(e) => setBreedOther(e.target.value)}
-            placeholder="e.g. Cavapoo, mixed…"
-            autoCapitalize="words"
-            style={{ width: '100%', marginTop: 10, background: '#fff', border: BORDER, borderRadius: 14, padding: '12px 14px', fontFamily: FFB, fontWeight: 700, fontSize: 15, color: INK, boxShadow: HARD2, outline: 'none' }}
-          />
-        )}
-        <Section title="Coat condition">
+        {breed === OTHER && otherInput(breedOther, setBreedOther, 'e.g. Cavapoo, mixed…')}
+        <Section title="How's the coat?">
           {COATS.map((c) => chip(c, coat === c, () => setCoat(c)))}
+          {chip('Other', coat === OTHER, () => setCoat(OTHER))}
         </Section>
+        {coat === OTHER && otherInput(coatOther, setCoatOther, 'e.g. greasy, double-coat, shedding a lot…')}
         <Section title="The look they&apos;re going for">
           {STYLES.map((s) => chip(s, style === s, () => setStyle(s)))}
+          {chip('Other', style === OTHER, () => setStyle(OTHER))}
         </Section>
+        {style === OTHER && otherInput(styleOther, setStyleOther, 'e.g. lion cut, lamb, kennel cut…')}
         {error && (
           <div style={{ marginTop: 18, background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 12, fontSize: 13, fontWeight: 700, color: 'var(--red-text)' }}>
             Couldn&apos;t build the plan just now — check your connection and tap again.
@@ -473,7 +484,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
       </div>
       <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff' }}>
         <button
-          onClick={() => ready && onBuild({ breed: finalBreed, coat, style })}
+          onClick={() => ready && onBuild({ breed: finalBreed, coat: finalCoat, style: finalStyle })}
           disabled={!ready}
           style={{ width: '100%', background: ready ? 'var(--primary)' : 'var(--neutral-fill)', border: BORDER, borderRadius: 16, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: ready ? INK : 'var(--muted-2)', boxShadow: ready ? HARD : 'none', cursor: ready ? 'pointer' : 'default' }}
         >

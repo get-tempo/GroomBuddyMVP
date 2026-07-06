@@ -66,8 +66,9 @@ Build the plan the way THIS school teaches a full groom (grounded in RELEVANT CU
 
 CANONICAL ORDER (adapt, don't blindly copy):
 Most full grooms run roughly: bath & blow-dry -> full brush-out & de-mat -> clipper/scissor the body to the chosen length -> tidy & clean the ears -> scissor/shape the face -> tidy the feet & pads -> sanitary trim -> nails -> final balance check. Keep this backbone, but ADAPT it to the intake:
-- If the coat is CLEAN & brushed already, the plan can start at the clip, not the bath.
+- Every groom starts with a bath & blow-dry, then a full brush-out. The one exception: a coat MATTED TO THE SKIN gets shaved down FIRST (you can't safely bathe or brush through tight matting), then bathed once the mats are off.
 - If it's MATTED TO THE SKIN, this is NOT a style groom: the plan is a humane, safe SHAVE-DOWN. Make an early step "get your instructor" before any blade goes on tight matting, and set expectations that the finished look is comfort-first, not a breed cut.
+- The more tangles/matting they reported, the more the brush-out and de-mat steps matter, so call that out. If they gave an "other" coat note (e.g. greasy, heavy shedding, double coat), adapt the bath/prep and tools to it.
 - Match blade/comb length and the face shape to the requested STYLE (short & easy, medium teddy, longer & fluffy, or breed-standard). For a breed-standard look, use that breed's standard silhouette and head.
 - Call out this breed's usual problem areas (e.g. doodle ears/armpits matting, a double coat you never shave, a drop-coat's part).
 
