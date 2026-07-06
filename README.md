@@ -12,8 +12,8 @@ the `Groom-Buddy-Research` repo. Only build-relevant docs are mirrored here unde
 
 - **Next.js (App Router)** on **Vercel**, one codebase (UI + API routes).
 - **Vercel AI SDK** for streaming chat, tool calling, and multimodal (photo) input.
-- **Claude (Sonnet-class)** to start, swappable in one line (`app/api/chat`).
-- **Supabase**: Postgres + pgvector (RAG) + Auth (light login) + Storage (images).
+- **Claude (Sonnet-class)** via **OpenRouter**, swappable in one line (`lib/model.ts`).
+- **Supabase**: Postgres + pgvector (RAG) + anonymous event/survey capture.
 - **OpenAI embeddings** (`text-embedding-3-small`) for RAG.
 
 Served as a **phone-first web app (PWA)**, distributed by link/QR to the student
@@ -43,24 +43,30 @@ app/                 Next.js app
 lib/
   prompt.ts          the Buddy system prompt + non-negotiable safety block
   imageBank.ts       keyed lookup over the image manifest (the findReferenceImages tool)
-  rag.ts             curriculum retrieval via pgvector (STUBBED until ingested)
+  rag.ts             curriculum retrieval via pgvector (LIVE; auto-enables when keyed)
+  access.ts          pilot access-code gate (server-only; opt-in via ACCESS_CODE)
   supabase.ts        anon (browser) + admin (server-only) clients
 data/
-  image-manifest.json   the reference bank (start: 2 head-shape images)
+  image-manifest.json   the reference bank (currently 1 head-shape image)
 public/reference/    the reference images themselves
 docs/                build-relevant docs mirrored from the research repo
 .claude/agents/
   code-reviewer.md   senior-dev + security reviewer (run before non-trivial commits)
 ```
 
-## Current status (day 1 scaffold)
+## Current status
 
-- Chat loop + image-bank tool + photo upload: wired.
-- **RAG: stubbed** (`RAG_ENABLED = false`) until the curriculum is cleaned and
-  ingested. Content is partial, this is the long pole (build sheet).
-- **Image bank: 2 images.** Cap ~10-15 for the pilot; grow the manifest.
-- Auth + miss-logging (Supabase): TODO.
-- `INSTRUCTOR NAME` placeholder in `lib/prompt.ts`: fill before the pilot.
+- Chat loop + image-bank tool + photo upload (HEIC-safe): wired and live.
+- **RAG: LIVE.** Curriculum is ingested into Supabase pgvector; retrieval
+  auto-enables when `OPENAI_API_KEY` + `SUPABASE_SERVICE_ROLE_KEY` are set. Falls
+  back to no-context (never breaks chat) on any error. Re-ingest: `node
+  scripts/ingest-curriculum.mjs` (curriculum/ is gitignored, proprietary).
+- **Access gate: opt-in.** Set `ACCESS_CODE` in the deploy to require a shared
+  class code (protects API spend on the public URL); leave blank to stay open.
+- **Image bank: 1 image.** Grow the manifest toward ~10-15 as real labeled
+  reference photos come in. (The old mislabeled rectangle placeholder was pulled.)
+- Progress persistence, real auth, miss-logging dashboard, voice input: not built
+  (intentionally out of pilot scope — the Den's stats are a labeled preview).
 
 ## Review
 

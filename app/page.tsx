@@ -103,6 +103,23 @@ export default function BuddyApp() {
   const [photos] = useState<string[]>([]);
   const [showSurvey, setShowSurvey] = useState(false);
 
+  // Pilot access gate. null = still checking. When the deploy sets ACCESS_CODE,
+  // /api/access reports required:true and we show the Gate until the student
+  // enters the code (stored in localStorage). Open (no gate) when unset.
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    fetch('/api/access')
+      .then((r) => r.json())
+      .then(({ required }: { required?: boolean }) => {
+        if (cancel) return;
+        setUnlocked(required ? !!localStorage.getItem('gb_access') : true);
+      })
+      // Fail open in the UI on a network hiccup; /api/chat still enforces server-side.
+      .catch(() => { if (!cancel) setUnlocked(true); });
+    return () => { cancel = true; };
+  }, []);
+
   // Deep-link to a screen via ?s=home|steps|detail|quick|progress
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
   useEffect(() => {
@@ -134,6 +151,9 @@ export default function BuddyApp() {
   const triggerSafety = () => { setShowSafety(true); logEvent('safety', {}); };
   const stoppedGetHelp = () => { setShowSafety(false); setScreen('home'); };
 
+  if (unlocked === null) return <div className="app" />; // brief blank while we check the gate
+  if (!unlocked) return <div className="app"><Gate onUnlock={() => setUnlocked(true)} /></div>;
+
   return (
     <div className="app">
       {/* status-bar notch breathing room is built into each screen's top padding */}
@@ -155,6 +175,69 @@ export default function BuddyApp() {
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
       {showListening && <Listening close={() => setShowListening(false)} />}
       {showSurvey && <Survey sessionId={getSessionId()} close={() => setShowSurvey(false)} />}
+    </div>
+  );
+}
+
+// ============================================================
+// Access gate — shown only when the deploy sets ACCESS_CODE. One shared class
+// code unlocks the app and is stored locally + sent with every chat request.
+// ============================================================
+function Gate({ onUnlock }: { onUnlock: () => void }) {
+  const [code, setCode] = useState('');
+  const [err, setErr] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    const c = code.trim();
+    if (!c || busy) return;
+    setBusy(true);
+    setErr(false);
+    try {
+      const r = await fetch('/api/access', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: c }),
+      });
+      const { ok } = (await r.json()) as { ok?: boolean };
+      if (ok) {
+        localStorage.setItem('gb_access', c);
+        onUnlock();
+      } else {
+        setErr(true);
+      }
+    } catch {
+      setErr(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="scr" style={{ alignItems: 'center', justifyContent: 'center', padding: '24px', gap: 0 }}>
+      <div style={{ animation: 'gbFloat 3s ease-in-out infinite' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={MASCOT} alt="Buddy" style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '5px solid var(--ink)', background: '#fff' }} />
+      </div>
+      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, marginTop: 18, textAlign: 'center' }}>Enter your class code</div>
+      <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 14, color: 'var(--muted-2)', marginTop: 6, textAlign: 'center' }}>Your instructor gave you this.</div>
+      <input
+        value={code}
+        onChange={(e) => { setCode(e.target.value); setErr(false); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        placeholder="class code"
+        autoCapitalize="none"
+        autoCorrect="off"
+        style={{ width: '100%', marginTop: 22, background: '#fff', border: err ? `2.5px solid var(--coral)` : BORDER, borderRadius: 16, padding: '15px 16px', fontFamily: FFB, fontWeight: 700, fontSize: 17, color: INK, boxShadow: HARD, outline: 'none', textAlign: 'center' }}
+      />
+      {err && <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--coral)', marginTop: 10 }}>That code didn&apos;t work — check with your instructor.</div>}
+      <button
+        onClick={submit}
+        disabled={busy}
+        style={{ width: '100%', marginTop: 16, background: 'var(--primary)', border: BORDER, borderRadius: 18, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 18, color: INK, boxShadow: HARD, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
+      >
+        {busy ? 'Checking…' : "Let me in →"}
+      </button>
     </div>
   );
 }
@@ -564,7 +647,14 @@ function Quick({ goHome, triggerSafety, breed }: QuickProps) {
   // Lightweight session context the model gets (curriculum RAG is added server-side).
   const context = `Dog: a ${breed}.`;
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: '/api/chat', body: { context } }),
+    () =>
+      new DefaultChatTransport({
+        api: '/api/chat',
+        body: { context },
+        // Pilot access code (if the deploy set one). Read fresh per request so a
+        // student who unlocks mid-session doesn't need a reload.
+        headers: () => ({ 'x-access-code': localStorage.getItem('gb_access') ?? '' }),
+      }),
     [context],
   );
   // sendAutomaticallyWhen: once the student answers the askQuestions card, the

@@ -8,15 +8,5 @@
     "topics": ["head shapes", "round head", "face scissoring", "face"],
     "breeds": ["Shih Tzu", "shih tzu"],
     "tags": ["head-shape", "round", "visual-reference"]
-  },
-  {
-    "id": "head-shape-rectangle",
-    "url": "/reference/head-shape-rectangle.png",
-    "title": "Rectangle head shape (terrier)",
-    "caption": "Rectangle head shape: keep cheeks tight and flat, extend the beard forward.",
-    "teaching_point": "Long lean profile, muzzle about as long as the back-skull. Leave beard and eyebrows longer and comb forward to extend the muzzle; keep cheeks tight and flat so the rectangle reads clean.",
-    "topics": ["head shapes", "rectangle head", "terrier head", "face"],
-    "breeds": ["terrier", "Irish terrier", "Welsh terrier", "Lakeland terrier", "Schnauzer"],
-    "tags": ["head-shape", "rectangle", "visual-reference"]
   }
 ]

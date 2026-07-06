@@ -1,15 +1,15 @@
 // RAG over the school's curriculum: embed the student's query, find the closest
 // curriculum chunks in Supabase pgvector, return them as context for the prompt.
 //
-// STATUS: stubbed for day 1. The curriculum content is PARTIAL (build sheet), so
-// this returns "" until the curriculum is ingested. Wiring is here so turning it
-// on is a small step, not a rewrite.
+// STATUS: LIVE. Curriculum is ingested (see scripts/ingest-curriculum.mjs;
+// curriculum/ is gitignored, proprietary). Auto-enables whenever both keys below
+// are present; on any failure it falls back to "" so chat never breaks.
 //
-// To turn on:
-//   1. Create a `curriculum_chunks` table in Supabase with a `vector` column +
-//      an RPC `match_curriculum(query_embedding, match_count)` (pgvector cosine).
-//   2. Ingest the cleaned curriculum (chunk -> embed -> insert).
-//   3. Flip RAG_ENABLED to true.
+// To (re)ingest after editing the curriculum:
+//   1. Ensure supabase/schema.sql has been run (curriculum_chunks table + the
+//      match_curriculum(query_embedding, match_count) pgvector-cosine RPC).
+//   2. Drop the cleaned curriculum into ./curriculum, then:
+//      node scripts/ingest-curriculum.mjs   (chunk -> embed -> replace rows)
 
 import { embed } from 'ai';
 import { openai } from '@ai-sdk/openai';

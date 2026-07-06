@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { SYSTEM_PROMPT } from '@/lib/prompt';
 import { findReferenceImages } from '@/lib/imageBank';
 import { retrieveCurriculum } from '@/lib/rag';
+import { accessRequired, codeOk } from '@/lib/access';
 
 // Allow streamed responses up to 30s (Vercel function default is short).
 export const maxDuration = 30;
@@ -44,6 +45,16 @@ function badRequest(message: string) {
 }
 
 export async function POST(req: Request) {
+  // Access gate: when ACCESS_CODE is configured, every model call must carry a
+  // valid x-access-code header. This is what actually protects API spend — a
+  // leaked link with no code can't reach the model. No-op when ACCESS_CODE unset.
+  if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
+    return new Response(JSON.stringify({ error: 'A valid access code is required.' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
   // `context` is the lightweight session context from the client (e.g. the
   // breed on the table). RAG curriculum is retrieved server-side below.
   let body: unknown;
