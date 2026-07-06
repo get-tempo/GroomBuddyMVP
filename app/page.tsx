@@ -613,7 +613,12 @@ function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step:
           <figure style={{ margin: 0 }}>
             <div style={{ border: BORDER, borderRadius: 14, overflow: 'hidden', position: 'relative', paddingTop: '56.25%', background: '#000' }}>
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}`}
+                src={(() => {
+                  const p = new URLSearchParams({ rel: '0' });
+                  if (video.start) p.set('start', String(video.start));
+                  if (video.end) p.set('end', String(video.end));
+                  return `https://www.youtube-nocookie.com/embed/${video.youtubeId}?${p}`;
+                })()}
                 title={video.title}
                 loading="lazy"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

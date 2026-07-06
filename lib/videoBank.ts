@@ -9,8 +9,11 @@
 //   "title": "Even body clip on a doodle",   // shown under the player
 //   "duration": "0:45",                        // optional, display only
 //   "topics": ["body clip", "clipper", "even length", "blade"],  // match keywords
-//   "breeds": ["Goldendoodle", "doodle"]       // optional, narrows the match
+//   "breeds": ["Goldendoodle", "doodle"],      // optional, narrows the match
+//   "start": 75,                                 // optional, seconds: jump past the intro
+//   "end": 240                                   // optional, seconds: stop before the outro
 // }
+// `start`/`end` let a clip play only the useful part instead of the whole video.
 // Match is by keyword overlap against the step (title + reference caption + breed),
 // so put the concepts a student would be on that step for into `topics`.
 import manifest from '@/data/video-bank.json';
@@ -21,6 +24,8 @@ export interface StepVideo {
   duration?: string;
   topics: string[];
   breeds?: string[];
+  start?: number; // seconds, skip the intro
+  end?: number; // seconds, stop before the outro
 }
 
 const MIN_SCORE = 2; // need a real overlap, not one stray word
