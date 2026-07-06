@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import Markdown from 'react-markdown';
-import { GROOM_STEPS } from '@/data/groom-steps';
+import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { logEvent, getSessionId } from '@/lib/analytics';
 
 // ============================================================
-// Grooming Buddy — single-screen state machine (per the handoff).
-// Screens: intro · home · steps · detail · quick · progress(Den)
-// Overlays: safety · listening
-// Pixel-ported from the Claude Design prototype; tokens via CSS vars.
+// Grooming Buddy — single-screen state machine.
+// Screens: intro · home(routing) · setup(intake) · steps · detail · quick · progress(Den)
+// Overlays: safety · survey · access gate
+// Guided mode builds a per-dog plan via /api/plan; Quick mode is the /api/chat bot.
 // ============================================================
 
 const MASCOT = '/art/Smileydogfunny.jpg';
@@ -47,7 +47,8 @@ const MD: Record<string, (p: any) => React.ReactElement> = {
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-type Screen = 'intro' | 'home' | 'steps' | 'detail' | 'quick' | 'progress';
+type Screen = 'intro' | 'home' | 'setup' | 'steps' | 'detail' | 'quick' | 'progress';
+type Intake = { breed: string; coat: string; style: string };
 
 // ---------- tiny inline icons ----------
 function ChevronR({ size = 18 }: { size?: number }) {
@@ -64,39 +65,18 @@ function ChevronL({ size = 20, onClick }: { size?: number; onClick?: () => void 
     </svg>
   );
 }
-function MicIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="9" y="3" width="6" height="11" rx="3" fill="#fff" />
-      <path d="M6 11a6 6 0 0 0 12 0M12 17v3" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-// ---------- mic button ----------
-function Mic({ big, onClick }: { big?: boolean; onClick: () => void }) {
-  const d = big ? 54 : 50;
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        flex: 'none', width: d, height: d, borderRadius: '50%', background: 'var(--coral)',
-        border: BORDER3, boxShadow: big ? HARD : HARD2, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-      }}
-    >
-      <MicIcon size={big ? 24 : 22} />
-    </div>
-  );
-}
-
 export default function BuddyApp() {
   const [screen, setScreen] = useState<Screen>('intro');
   const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
+  // The groom plan for the dog on the table. Generated per-dog by /api/plan from
+  // the intake; falls back to the built-in canonical plan if generation fails.
+  const [plan, setPlan] = useState<GroomStep[]>(GROOM_STEPS);
   const [done, setDone] = useState<boolean[]>(Array(GROOM_STEPS.length).fill(false));
   const [selStep, setSelStep] = useState(0);
-  const [breed, setBreed] = useState('Goldendoodle'); // set by the breed chips on Home
+  const [breed, setBreed] = useState('Goldendoodle'); // the dog on the table (set at intake)
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
-  const [showListening, setShowListening] = useState(false);
   const [prevScreen, setPrevScreen] = useState<Screen>('home');
 
   // session "portfolio" preview (no writer yet; Den shows the empty state) + survey overlay
@@ -124,30 +104,56 @@ export default function BuddyApp() {
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
   useEffect(() => {
     const s = new URLSearchParams(window.location.search).get('s') as Screen | null;
-    const valid: Screen[] = ['intro', 'home', 'steps', 'detail', 'quick', 'progress'];
+    const valid: Screen[] = ['intro', 'home', 'setup', 'steps', 'detail', 'quick', 'progress'];
     if (s && valid.includes(s)) setScreen(s);
   }, []);
 
   const doneCount = done.filter(Boolean).length;
 
-  // ---- navigation / handlers (mirror the prototype) ----
-  const letsGroom = () => setScreen('home');
-  const goHome = () => setScreen('home');
+  // ---- navigation / handlers ----
+  const goHome = () => setScreen('home');            // the routing screen (full groom vs. quick)
+  const startGroom = () => { setPlanError(false); setScreen('setup'); }; // full-groom intake
   const backToList = () => setScreen('steps');
-  const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: GROOM_STEPS[i].t }); };
+  const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: plan[i]?.t }); };
   const setQuickMode = () => setScreen('quick');
+
+  // Build the tailored plan from the intake, then drop into the step list.
+  const buildPlan = async (intake: Intake) => {
+    setPlanLoading(true);
+    setPlanError(false);
+    setBreed(intake.breed);
+    try {
+      const r = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-access-code': localStorage.getItem('gb_access') ?? '' },
+        body: JSON.stringify(intake),
+      });
+      if (!r.ok) throw new Error('plan request failed');
+      const data = (await r.json()) as { steps?: GroomStep[] };
+      if (!Array.isArray(data.steps) || data.steps.length === 0) throw new Error('empty plan');
+      setPlan(data.steps);
+      setDone(Array(data.steps.length).fill(false));
+      setStepIdx(0);
+      setScreen('steps');
+      logEvent('plan_built', { breed: intake.breed, coat: intake.coat, style: intake.style, steps: data.steps.length });
+    } catch {
+      setPlanError(true); // stays on the intake screen with a retry
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
   const gotItNext = () => {
     const d = done.slice();
     d[stepIdx] = true;
     setDone(d);
-    const wasLast = stepIdx === GROOM_STEPS.length - 1;
-    setStepIdx(Math.min(stepIdx + 1, GROOM_STEPS.length - 1));
+    const wasLast = stepIdx === plan.length - 1;
+    setStepIdx(Math.min(stepIdx + 1, plan.length - 1));
     setScreen('steps');
     if (wasLast || d.every(Boolean)) { logEvent('groom_complete', {}); setShowSurvey(true); }
   };
   const goDen = () => { setPrevScreen(screen); setScreen('progress'); };
   const backFromDen = () => setScreen(prevScreen || 'home');
-  const openListening = () => setShowListening(true);
   const triggerSafety = () => { setShowSafety(true); logEvent('safety', {}); };
   const stoppedGetHelp = () => { setShowSafety(false); setScreen('home'); };
 
@@ -157,15 +163,18 @@ export default function BuddyApp() {
   return (
     <div className="app">
       {/* status-bar notch breathing room is built into each screen's top padding */}
-      {screen === 'intro' && <Intro letsGroom={letsGroom} />}
+      {screen === 'intro' && <Intro letsGroom={goHome} />}
       {screen === 'home' && (
-        <Home goDen={goDen} setQuickMode={setQuickMode} openListening={openListening} pickBreed={(b) => { setBreed(b); setScreen('steps'); }} />
+        <Home goDen={goDen} startGroom={startGroom} setQuickMode={setQuickMode} />
+      )}
+      {screen === 'setup' && (
+        <Setup back={goHome} onBuild={buildPlan} loading={planLoading} error={planError} />
       )}
       {screen === 'steps' && (
-        <Steps breed={breed} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} openListening={openListening} />
+        <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
       )}
       {screen === 'detail' && (
-        <Detail i={selStep} backToList={backToList} gotItNext={gotItNext} />
+        <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} backToList={backToList} gotItNext={gotItNext} />
       )}
       {screen === 'quick' && (
         <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
@@ -173,7 +182,6 @@ export default function BuddyApp() {
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
-      {showListening && <Listening close={() => setShowListening(false)} />}
       {showSurvey && <Survey sessionId={getSessionId()} close={() => setShowSurvey(false)} />}
     </div>
   );
@@ -351,16 +359,13 @@ function Intro({ letsGroom }: { letsGroom: () => void }) {
 }
 
 // ============================================================
-// SCREEN 2 — Home
+// SCREEN 2 — Home / routing: "what are we doing today?"
 // ============================================================
-function Home({ goDen, setQuickMode, openListening, pickBreed }: { goDen: () => void; setQuickMode: () => void; openListening: () => void; pickBreed: (b: string) => void }) {
-  const chip = (label: string, active?: boolean, muted?: boolean, onClick?: () => void) => (
-    <div onClick={onClick ?? (() => pickBreed(label))} style={{ background: active ? 'var(--primary)' : '#fff', border: BORDER, borderRadius: 999, padding: '9px 15px', fontWeight: 800, fontSize: 14, color: muted ? 'var(--muted-2)' : INK, cursor: 'pointer' }}>{label}</div>
-  );
+function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGroom: () => void; setQuickMode: () => void }) {
   return (
-    <div className="scr">
+    <div className="scr" style={{ padding: '0 18px' }}>
       {/* topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '34px 18px 10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '34px 0 10px' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img onClick={goDen} src={MASCOT} alt="Buddy" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff', cursor: 'pointer' }} />
         <div onClick={goDen} style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
@@ -368,33 +373,112 @@ function Home({ goDen, setQuickMode, openListening, pickBreed }: { goDen: () => 
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green)', border: BORDER, borderRadius: 999, padding: '5px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: '#fff' }}>7🔥</div>
         </div>
       </div>
-      {/* switcher */}
-      <div style={{ margin: '6px 18px 0', background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-        <div style={{ flex: 1, textAlign: 'center', background: 'var(--primary)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK }}>Guided groom</div>
-        <div onClick={setQuickMode} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Quick question</div>
+
+      <div style={{ padding: '18px 0 6px' }}>
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>What are we doing<br />today?</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one — I&apos;ll take it from there.</div>
       </div>
-      <div className="gbsc scroll" style={{ padding: '0 18px' }}>
-        <div style={{ padding: '20px 0 0' }}>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, lineHeight: 1.1 }}>Who&apos;s on the table<br />today?</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 4 }}>Tell me the breed & coat, I&apos;ll build the plan.</div>
-        </div>
-        <div style={{ padding: '16px 0 0', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {chip('Goldendoodle', true)}
-          {chip('Shih Tzu')}
-          {chip('Lab')}
-          {chip('+ more', false, true, () => pickBreed('Goldendoodle'))}
-        </div>
-        {/* "Pick up where you left off" resume card removed for the account-free
-            demo (no persisted progress yet). Kept here for when sessions persist:
-            <div onClick={startGroom} style={{ margin:'18px 0 0', background:'var(--primary-soft)', border:BORDER, borderRadius:18, padding:15, boxShadow:HARD, cursor:'pointer' }}>
-              ...PICK UP WHERE YOU LEFT OFF · 5/9 · Maple · Goldendoodle · Next: scissor the face...
-            </div> */}
-        <div style={{ height: 18 }} />
+
+      {/* two big choices */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
+        <button onClick={startGroom} style={{ textAlign: 'left', background: 'var(--primary)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
+          <div style={{ fontSize: 30 }}>🛁</div>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, marginTop: 8, lineHeight: 1.1 }}>Full groom, start to finish</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: '#4A3C30', marginTop: 4, lineHeight: 1.35 }}>Tell me the dog and I&apos;ll build a step-by-step plan just for them.</div>
+        </button>
+        <button onClick={setQuickMode} style={{ textAlign: 'left', background: 'var(--coral)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
+          <div style={{ fontSize: 30 }}>💬</div>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: '#fff', marginTop: 8, lineHeight: 1.1 }}>Quick question about one spot</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,.92)', marginTop: 4, lineHeight: 1.35 }}>Stuck on one thing? Ask me or send a photo and I&apos;ll coach you.</div>
+        </button>
       </div>
-      {/* action bar */}
-      <div style={{ padding: '14px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div onClick={setQuickMode} style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 14, fontWeight: 700, fontSize: 14, color: 'var(--muted-2)', cursor: 'pointer' }}>Ask Buddy anything…</div>
-        <Mic big onClick={openListening} />
+      <div style={{ flex: 1 }} />
+    </div>
+  );
+}
+
+// ============================================================
+// SCREEN 2b — Guided intake: breed + coat + style -> build the plan
+// ============================================================
+const BREEDS = ['Goldendoodle', 'Labradoodle', 'Poodle', 'Shih Tzu', 'Yorkie', 'Maltese', 'Bichon', 'Schnauzer', 'Cocker Spaniel', 'Doodle mix'];
+const COATS = ['Clean & brushed', 'Needs a bath', 'A few mats', 'Matted to the skin'];
+const STYLES = ['Short & easy', 'Medium teddy', 'Longer & fluffy', 'Breed-standard'];
+
+function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (i: Intake) => void; loading: boolean; error: boolean }) {
+  const [breed, setBreed] = useState('');
+  const [breedOther, setBreedOther] = useState('');
+  const [coat, setCoat] = useState('');
+  const [style, setStyle] = useState('');
+  const otherOn = breed === '__other';
+  const finalBreed = otherOn ? breedOther.trim() : breed;
+  const ready = !!finalBreed && !!coat && !!style && !loading;
+
+  const chip = (label: string, active: boolean, onClick: () => void) => (
+    <div onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
+  );
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, marginBottom: 9 }}>{title}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{children}</div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="scr" style={{ alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={MASCOT} alt="Buddy" style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '5px solid var(--ink)', background: '#fff', animation: 'gbFloat 2s ease-in-out infinite' }} />
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, marginTop: 20, textAlign: 'center' }}>Building your plan…</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--muted-1)', marginTop: 6, textAlign: 'center' }}>Reading the book for {finalBreed || 'this dog'} and making it fit.</div>
+        <div style={{ display: 'flex', gap: 5, marginTop: 18 }}>
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite' }} />
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .2s' }} />
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .4s' }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="scr">
+      <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <ChevronL size={22} onClick={back} />
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK }}>Who&apos;s on the table?</div>
+      </div>
+      <div className="gbsc scroll" style={{ padding: '4px 18px 18px' }}>
+        <Section title="Breed">
+          {BREEDS.map((b) => chip(b, breed === b, () => setBreed(b)))}
+          {chip('Other / mixed', otherOn, () => setBreed('__other'))}
+        </Section>
+        {otherOn && (
+          <input
+            value={breedOther}
+            onChange={(e) => setBreedOther(e.target.value)}
+            placeholder="e.g. Cavapoo, mixed…"
+            autoCapitalize="words"
+            style={{ width: '100%', marginTop: 10, background: '#fff', border: BORDER, borderRadius: 14, padding: '12px 14px', fontFamily: FFB, fontWeight: 700, fontSize: 15, color: INK, boxShadow: HARD2, outline: 'none' }}
+          />
+        )}
+        <Section title="Coat condition">
+          {COATS.map((c) => chip(c, coat === c, () => setCoat(c)))}
+        </Section>
+        <Section title="The look they&apos;re going for">
+          {STYLES.map((s) => chip(s, style === s, () => setStyle(s)))}
+        </Section>
+        {error && (
+          <div style={{ marginTop: 18, background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 12, fontSize: 13, fontWeight: 700, color: 'var(--red-text)' }}>
+            Couldn&apos;t build the plan just now — check your connection and tap again.
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff' }}>
+        <button
+          onClick={() => ready && onBuild({ breed: finalBreed, coat, style })}
+          disabled={!ready}
+          style={{ width: '100%', background: ready ? 'var(--primary)' : 'var(--neutral-fill)', border: BORDER, borderRadius: 16, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: ready ? INK : 'var(--muted-2)', boxShadow: ready ? HARD : 'none', cursor: ready ? 'pointer' : 'default' }}
+        >
+          Build my plan →
+        </button>
       </div>
     </div>
   );
@@ -403,7 +487,7 @@ function Home({ goDen, setQuickMode, openListening, pickBreed }: { goDen: () => 
 // ============================================================
 // SCREEN 3 — Steps list
 // ============================================================
-function Steps({ breed, doneCount, done, stepIdx, goHome, openDetail, setQuickMode, openListening }: { breed: string; doneCount: number; done: boolean[]; stepIdx: number; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void; openListening: () => void }) {
+function Steps({ breed, steps, doneCount, done, stepIdx, goHome, openDetail, setQuickMode }: { breed: string; steps: GroomStep[]; doneCount: number; done: boolean[]; stepIdx: number; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void }) {
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER }}>
@@ -415,11 +499,11 @@ function Steps({ breed, doneCount, done, stepIdx, goHome, openDetail, setQuickMo
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)' }}>Full groom · teddy-bear face</div>
             </div>
           </div>
-          <div style={{ background: INK, color: 'var(--primary)', fontFamily: FFD, fontWeight: 800, fontSize: 14, padding: '6px 11px', borderRadius: 12 }}>{doneCount}/9</div>
+          <div style={{ background: INK, color: 'var(--primary)', fontFamily: FFD, fontWeight: 800, fontSize: 14, padding: '6px 11px', borderRadius: 12 }}>{doneCount}/{steps.length}</div>
         </div>
       </div>
       <div className="gbsc scroll" style={{ padding: '14px 16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {GROOM_STEPS.map((st, i) => {
+        {steps.map((st, i) => {
           const isDone = done[i];
           const isCurrent = i === stepIdx && !done[i];
           if (isDone) {
@@ -454,7 +538,6 @@ function Steps({ breed, doneCount, done, stepIdx, goHome, openDetail, setQuickMo
       </div>
       <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div onClick={setQuickMode} style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Ask about any step…</div>
-        <Mic onClick={openListening} />
       </div>
     </div>
   );
@@ -463,14 +546,14 @@ function Steps({ breed, doneCount, done, stepIdx, goHome, openDetail, setQuickMo
 // ============================================================
 // SCREEN 4 — Step detail (core value screen)
 // ============================================================
-function Detail({ i, backToList, gotItNext }: { i: number; backToList: () => void; gotItNext: () => void }) {
-  const d = GROOM_STEPS[i] || GROOM_STEPS[0];
+function Detail({ step, i, total, backToList, gotItNext }: { step: GroomStep; i: number; total: number; backToList: () => void; gotItNext: () => void }) {
+  const d = step;
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER, display: 'flex', alignItems: 'center', gap: 10 }}>
         <ChevronL onClick={backToList} />
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold-deep)' }}>STEP {i + 1} OF 9</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold-deep)' }}>STEP {i + 1} OF {total}</div>
           <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, lineHeight: 1 }}>{d.t}</div>
         </div>
       </div>
@@ -951,33 +1034,6 @@ function Safety({ stoppedGetHelp, closeSafety }: { stoppedGetHelp: () => void; c
         <button onClick={stoppedGetHelp} style={{ width: '100%', marginTop: 16, background: 'var(--red)', border: BORDER3, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: '#fff', boxShadow: HARD, cursor: 'pointer' }}>I&apos;ve stopped — get help</button>
         <button onClick={closeSafety} style={{ width: '100%', marginTop: 10, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>It was a false alarm</button>
       </div>
-    </div>
-  );
-}
-
-// ============================================================
-// OVERLAY — Listening
-// ============================================================
-function Listening({ close }: { close: () => void }) {
-  return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 80, background: 'linear-gradient(180deg,#2B211A 0%,#3A2D22 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'gbPop .3s ease' }}>
-      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--primary)', position: 'absolute', top: 54 }}>Listening…</div>
-      <div style={{ position: 'relative', width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: '3px solid rgba(255,195,43,.3)', animation: 'gbFloat 2s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', border: '3px solid rgba(255,195,43,.5)' }} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={MASCOT} alt="Buddy" style={{ width: 124, height: 124, borderRadius: '50%', objectFit: 'cover', border: '5px solid var(--primary)', background: '#fff', animation: 'gbFloat 2.4s ease-in-out infinite' }} />
-      </div>
-      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: '#fff', marginTop: 34, textAlign: 'center', lineHeight: 1.25 }}>&quot;Buddy, the mats behind<br />her ears won&apos;t budge…&quot;</div>
-      <div style={{ display: 'flex', gap: 4, marginTop: 18 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .2s' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .4s' }} />
-      </div>
-      <div onClick={close} style={{ marginTop: 40, width: 72, height: 72, borderRadius: '50%', background: 'var(--coral)', border: '3px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <MicIcon size={28} />
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginTop: 12 }}>Tap to send</div>
     </div>
   );
 }
