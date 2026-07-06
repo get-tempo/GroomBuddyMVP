@@ -836,9 +836,9 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
       <div ref={scrollRef} className="gbsc scroll" style={{ padding: '14px 18px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <ChatBubble role="assistant">
           {askStep ? (
-            <>You&apos;re on <strong>{askStep.title}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at and I&apos;ll take a look.</>
+            <span>You&apos;re on <strong>{askStep.title}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at and I&apos;ll take a look.</span>
           ) : (
-            <>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</>
+            <span>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</span>
           )}
         </ChatBubble>
 
