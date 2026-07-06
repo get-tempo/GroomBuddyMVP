@@ -254,7 +254,7 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
         autoCorrect="off"
         style={{ width: '100%', marginTop: 22, background: '#fff', border: err ? `2.5px solid var(--coral)` : BORDER, borderRadius: 16, padding: '15px 16px', fontFamily: FFB, fontWeight: 700, fontSize: 17, color: INK, boxShadow: HARD, outline: 'none', textAlign: 'center' }}
       />
-      {err && <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--coral)', marginTop: 10 }}>That code didn&apos;t work — check with your instructor.</div>}
+      {err && <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--coral)', marginTop: 10 }}>That code didn&apos;t work. Check with your instructor.</div>}
       <button
         onClick={submit}
         disabled={busy}
@@ -363,7 +363,7 @@ function Intro({ letsGroom }: { letsGroom: () => void }) {
       <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 27, color: INK, marginTop: 20, textAlign: 'center', lineHeight: 1.1 }}>I&apos;m Buddy.<br />Here&apos;s what I do →</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 13, width: '100%', marginTop: 26 }}>
         {row(1, 'var(--primary)', INK, 'Walk you through the whole groom, step by step')}
-        {row(2, 'var(--coral)', '#fff', 'Look at your photo & coach you — never grade you')}
+        {row(2, 'var(--coral)', '#fff', 'Look at your photo & coach you, never grade you')}
         {row(3, 'var(--green)', '#fff', 'Tell you when to pause & grab a human')}
       </div>
       <div style={{ marginTop: 'auto', width: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -392,7 +392,7 @@ function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGro
 
       <div style={{ padding: '18px 0 6px' }}>
         <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>What are we doing<br />today?</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one — I&apos;ll take it from there.</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one. I&apos;ll take it from there.</div>
       </div>
 
       {/* two big choices */}
@@ -494,7 +494,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
         {style === OTHER && otherInput(styleOther, setStyleOther, 'e.g. lion cut, lamb, kennel cut…')}
         {error && (
           <div style={{ marginTop: 18, background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 12, fontSize: 13, fontWeight: 700, color: 'var(--red-text)' }}>
-            Couldn&apos;t build the plan just now — check your connection and tap again.
+            Couldn&apos;t build the plan just now. Check your connection and tap again.
           </div>
         )}
       </div>
@@ -643,7 +643,7 @@ function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step:
       </div>
       <div style={{ padding: '12px 16px 22px', borderTop: BORDER, background: '#fff', display: 'flex', gap: 10 }}>
         <button onClick={backToList} style={{ flex: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: '13px 16px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>‹ Steps</button>
-        <button onClick={gotItNext} style={{ flex: 1, background: 'var(--green)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>Got it — next ✓</button>
+        <button onClick={gotItNext} style={{ flex: 1, background: 'var(--green)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>Got it, next ✓</button>
       </div>
     </div>
   );
@@ -838,7 +838,7 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
           {askStep ? (
             <>You&apos;re on <strong>{askStep.title}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at and I&apos;ll take a look.</>
           ) : (
-            <>I&apos;m right here — ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</>
+            <>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</>
           )}
         </ChatBubble>
 
@@ -893,7 +893,7 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
                 if (part.state === 'output-available') {
                   const out = part.output as { answers?: { answer: string }[]; skipped?: boolean } | undefined;
                   if (out?.skipped) {
-                    return <div key={i} style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-2)' }}>Skipped — giving you my best read.</div>;
+                    return <div key={i} style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted-2)' }}>Skipped. Giving you my best read.</div>;
                   }
                   if (out?.answers?.length) {
                     return (
@@ -939,10 +939,10 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
           {(pending.dark || pending.blurry) && (
             <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: 'var(--red-text)' }}>
               {pending.dark && pending.blurry
-                ? 'A bit dark and soft — more light and a steady hand help me see, but you can still send.'
+                ? 'A bit dark and soft. More light and a steady hand help me see, but you can still send.'
                 : pending.dark
-                  ? 'A bit dark — more light helps me see, but you can still send.'
-                  : 'A little blurry — hold steady for a sharper one, but you can still send.'}
+                  ? 'A bit dark. More light helps me see, but you can still send.'
+                  : 'A little blurry. Hold steady for a sharper one, but you can still send.'}
             </div>
           )}
           <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--muted-2)' }}>
@@ -1060,7 +1060,7 @@ function Den({ backFromDen, photos, openSurvey }: { backFromDen: () => void; pho
         <div style={{ background: 'var(--primary-soft)', border: BORDER, borderRadius: 16, padding: 13, display: 'flex', gap: 10, alignItems: 'center', boxShadow: HARD }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={MASCOT} alt="Buddy" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: BORDER, background: '#fff' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', lineHeight: 1.35 }}>&quot;Every groom we do together, you get a little sharper. Keep it up! 🐾&quot; — Buddy</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)', lineHeight: 1.35 }}>&quot;Every groom we do together, you get a little sharper. Keep it up! 🐾&quot; · Buddy</div>
         </div>
         <button onClick={openSurvey} style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, boxShadow: HARD, cursor: 'pointer' }}>Tell us what you think 💬</button>
       </div>
@@ -1078,13 +1078,13 @@ function Safety({ stoppedGetHelp, closeSafety }: { stoppedGetHelp: () => void; c
         <div style={{ position: 'absolute', top: -34, left: '50%', transform: 'translateX(-50%)', width: 64, height: 64, borderRadius: '50%', background: 'var(--red)', border: '4px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: HARD }}>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#fff" strokeWidth="3" strokeLinecap="round" /><circle cx="12" cy="17" r="1.6" fill="#fff" /></svg>
         </div>
-        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, textAlign: 'center', marginTop: 14, lineHeight: 1.1 }}>Let&apos;s pause — and get a person.</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#7A2E31', textAlign: 'center', lineHeight: 1.45, marginTop: 10 }}>A yelp + pulling away can mean a nail&apos;s cut too short or she&apos;s hurting. <b>This is one to hand off</b> — please stop and grab your instructor or a senior groomer now.</div>
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, textAlign: 'center', marginTop: 14, lineHeight: 1.1 }}>Let&apos;s pause, and get a person.</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#7A2E31', textAlign: 'center', lineHeight: 1.45, marginTop: 10 }}>A yelp + pulling away can mean a nail&apos;s cut too short or she&apos;s hurting. <b>This is one to hand off</b>. Please stop and grab your instructor or a senior groomer now.</div>
         <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 13, marginTop: 16 }}>
           <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--red-text)', marginBottom: 6 }}>While you wait</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>Keep her calm and still, gently check the paw for bleeding, don&apos;t keep cutting.</div>
         </div>
-        <button onClick={stoppedGetHelp} style={{ width: '100%', marginTop: 16, background: 'var(--red)', border: BORDER3, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: '#fff', boxShadow: HARD, cursor: 'pointer' }}>I&apos;ve stopped — get help</button>
+        <button onClick={stoppedGetHelp} style={{ width: '100%', marginTop: 16, background: 'var(--red)', border: BORDER3, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: '#fff', boxShadow: HARD, cursor: 'pointer' }}>I&apos;ve stopped, get help</button>
         <button onClick={closeSafety} style={{ width: '100%', marginTop: 10, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>It was a false alarm</button>
       </div>
     </div>
