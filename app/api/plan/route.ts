@@ -18,7 +18,11 @@ export const maxDuration = 60;
 const stepSchema = z.object({
   t: z.string(),
   quickRead: z.string(),
-  doNext: z.string(),
+  // 2-4 concrete ordered actions. Tolerate a bare string by wrapping it.
+  doNext: z.preprocess(
+    (v) => (typeof v === 'string' ? [v] : v),
+    z.array(z.string()).min(1).max(6),
+  ),
   cue: z.string(),
   good: z.string(),
   watch: z.string(),
@@ -101,8 +105,8 @@ export async function POST(req: Request) {
   // Explicit output contract for generateText.
   system +=
     '\n\nOUTPUT FORMAT: Respond with ONLY a JSON array of step objects, no prose and no code fences, exactly:\n' +
-    '[{"t":"","quickRead":"","doNext":"","cue":"","good":"","watch":"","ref":""}, ...]\n' +
-    'Include 7-9 step objects. Every field is a non-empty string, one short sentence.';
+    '[{"t":"","quickRead":"","doNext":["",""],"cue":"","good":"","watch":"","ref":""}, ...]\n' +
+    'Include 7-9 step objects. `doNext` is an array of 2-4 short action strings; every other field is a non-empty single short sentence.';
 
   const dog = `Dog: a ${b}. Coat condition: ${c || 'not specified'}. Desired style/length: ${s || 'not specified'}.`;
 

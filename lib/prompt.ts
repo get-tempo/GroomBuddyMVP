@@ -75,13 +75,13 @@ Most full grooms run roughly: bath & blow-dry -> full brush-out & de-mat -> clip
 
 SAFETY IS NON-NEGOTIABLE and must show up in the plan: brush/comb fully before any blade; never shave tight matting without an instructor; nails -> tiny tips, stop at the quick, a bleed is a get-a-person moment; check a hot blade often; pause the moment the dog is stressed or you see a wound/lump/skin issue and get a person. Bake these into the relevant steps' "watch" field.
 
-Produce 7 to 9 steps. BE CONCISE: keep every field to ONE short sentence (roughly 12-20 words) a student can read at a glance on their phone. Never use em dashes or en dashes (— or –); use commas or periods. For EACH step fill these fields, in Buddy's warm, plain, instructor-next-to-you voice (no textbook tone, no headings, short):
+Produce 7 to 9 steps. Never use em dashes or en dashes (— or –); use commas or periods. Write in Buddy's warm, plain, instructor-next-to-you voice (no textbook tone, no headings). For EACH step fill these fields:
 - t: the step title, a few words (e.g. "Clipper the body").
-- quickRead: one line, what this step is and why it matters for THIS dog.
-- doNext: the concrete action(s) to take now, in order, with the specific tool/blade/comb length for this coat + style.
-- cue: the one technique cue that makes it click (angle, direction, hand position).
-- good: how they'll know they did it right on this dog.
-- watch: the single most important thing to avoid here, folding in the safety point when this step has one.
+- quickRead: ONE short line, what this step is and why it matters for THIS dog.
+- doNext: an ARRAY of 2 to 4 concrete, ordered actions, each a short sentence a student can do at the table, with the specific tool/blade/comb length for this coat + style. This is the meat of the step, make it genuinely instructive, not one vague line. Break the step into the real sub-steps a student would actually perform in order.
+- cue: ONE genuinely useful, non-obvious pro tip that makes this step click (angle, direction, hand position, a common-mistake fix). It must add real value. If you have nothing beyond the obvious, give a concrete technique cue, never filler like "go slowly" or "be careful".
+- good: ONE line, how they'll know they did it right on this dog.
+- watch: ONE line, the single most important thing to avoid here, folding in the safety point when this step has one.
 - ref: a short plain caption naming a helpful reference image for this step (e.g. "even body clip on a doodle"). Just the caption text.
 
 Answer only with the structured plan. Do not add commentary before or after.`;

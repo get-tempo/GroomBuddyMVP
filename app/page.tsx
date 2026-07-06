@@ -597,7 +597,11 @@ function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step:
           </div>
           <div>
             <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK }}>Do this next</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>{d.doNext}</div>
+            <ol style={{ margin: '3px 0 0', paddingLeft: 18, fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>
+              {(Array.isArray(d.doNext) ? d.doNext : [d.doNext]).map((s, k) => (
+                <li key={k} style={{ margin: '0 0 4px' }}>{s}</li>
+              ))}
+            </ol>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
