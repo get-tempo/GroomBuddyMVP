@@ -76,7 +76,6 @@ export default function BuddyApp() {
   const [selStep, setSelStep] = useState(0);
   const [breed, setBreed] = useState('Goldendoodle'); // the dog on the table (set at intake)
   const [dog, setDog] = useState<Intake | null>(null); // full intake, for step-chat context
-  const [askStep, setAskStep] = useState<{ ctx: string; title: string } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState(''); // '' = no error; otherwise the message to show
   const [showSafety, setShowSafety] = useState(false);
@@ -164,18 +163,8 @@ export default function BuddyApp() {
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: plan[i]?.t }); };
   // Generic chat (from the routing screen / mode toggle): no step context.
-  const setQuickMode = () => { setAskStep(null); setScreen('quick'); };
-  // "Ask Buddy about this step": open the chat pre-loaded with the step + dog.
-  const askAboutStep = (i: number) => {
-    const st = plan[i];
-    const who = dog ? `a ${dog.breed}, coat: ${dog.coat}, going for ${dog.style}` : `a ${breed}`;
-    setAskStep({
-      title: st.t,
-      ctx: `The student is doing a full guided groom on ${who} and is on step ${i + 1} of ${plan.length}: "${st.t}" (${st.quickRead}). Answer about THIS step specifically. They may send a photo of their progress on it.`,
-    });
-    logEvent('ask_about_step', { step: i + 1, title: st.t });
-    setScreen('quick');
-  };
+  // Step-specific questions are answered inline on the Detail screen now.
+  const setQuickMode = () => setScreen('quick');
 
   // Build the tailored plan from the intake, then drop into the step list.
   const buildPlan = async (intake: Intake) => {
@@ -248,10 +237,10 @@ export default function BuddyApp() {
         <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
       )}
       {screen === 'detail' && (
-        <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} backToList={backToList} gotItNext={gotItNext} onAsk={() => askAboutStep(selStep)} />
+        <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} dog={dog} backToList={backToList} gotItNext={gotItNext} />
       )}
       {screen === 'quick' && (
-        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} askStep={askStep} />
+        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
@@ -631,8 +620,14 @@ function Steps({ breed, steps, doneCount, done, stepIdx, goHome, openDetail, set
 // ============================================================
 // SCREEN 4 — Step detail (core value screen)
 // ============================================================
-function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step: GroomStep; i: number; total: number; breed: string; backToList: () => void; gotItNext: () => void; onAsk: () => void }) {
+function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: GroomStep; i: number; total: number; breed: string; dog: Intake | null; backToList: () => void; gotItNext: () => void }) {
   const d = step;
+  // Inline step chat: the answer shows up right here on the step, not on the
+  // Quick tab. Closed by default; state resets naturally when the step changes.
+  const [chatOpen, setChatOpen] = useState(false);
+  useEffect(() => setChatOpen(false), [i]);
+  const who = dog ? `a ${dog.breed}, coat: ${dog.coat}, going for ${dog.style}` : `a ${breed}`;
+  const stepCtx = `The student is doing a full guided groom on ${who} and is on step ${i + 1} of ${total}: "${d.t}" (${d.quickRead}). Answer about THIS step specifically. They may send a photo of their progress on it.`;
   // Show an approved technique video for this step if one clearly matches;
   // otherwise show nothing (no empty "reference goes here" placeholder).
   const video = findStepVideo(`${d.t} ${d.ref} ${breed}`);
@@ -703,10 +698,32 @@ function Detail({ step, i, total, breed, backToList, gotItNext, onAsk }: { step:
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red-text-2)', lineHeight: 1.35, marginTop: 3 }}>{d.watch}</div>
           </div>
         </div>
-        {/* Depth on demand: contextual chat about THIS step (can send a photo). */}
-        <button onClick={onAsk} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>
-          💬 Ask Buddy about this step
+        {/* Depth on demand: contextual chat about THIS step, answered in place. */}
+        <button
+          onClick={() => {
+            setChatOpen((v) => !v);
+            if (!chatOpen) logEvent('ask_about_step', { step: i + 1, title: d.t });
+          }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}
+        >
+          💬 {chatOpen ? 'Hide the chat' : 'Ask Buddy about this step'}
         </button>
+        {chatOpen && (
+          <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 12, boxShadow: HARD }}>
+            <ChatPanel
+              compact
+              context={stepCtx}
+              intro={<span>You&apos;re on <strong>{d.t}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at with the ➕ and I&apos;ll take a look.</span>}
+              chips={({ deliver, prefill, busy }) => (
+                <>
+                  <QuickChip label="Walk me through it" onClick={() => { if (!busy) deliver('Walk me through this step in more detail.'); }} />
+                  <QuickChip label="Is this okay?" onClick={() => prefill('Is this okay? ')} />
+                  <QuickChip label="Show me a reference" onClick={() => prefill('Show me a reference photo of ')} />
+                </>
+              )}
+            />
+          </div>
+        )}
       </div>
       <div style={{ padding: '12px 16px 22px', borderTop: BORDER, background: '#fff', display: 'flex', gap: 10 }}>
         <button onClick={backToList} style={{ flex: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: '13px 16px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>‹ Steps</button>
@@ -723,8 +740,18 @@ type QuickProps = {
   goHome: () => void;
   triggerSafety: () => void;
   breed: string;
-  // When opened via "Ask Buddy about this step", the step + dog context and title.
-  askStep: { ctx: string; title: string } | null;
+};
+
+// The reusable live-chat panel (thread + chips + input + photo picker). The
+// Quick screen wraps it full-height; Detail embeds it compact, in place, so a
+// step question is answered right where the student is standing.
+type ChatPanelProps = {
+  // Lightweight session context the model gets (curriculum RAG is added server-side).
+  context: string;
+  intro: React.ReactNode;
+  // Embedded inside another screen (step detail): bounded thread, tighter chrome.
+  compact?: boolean;
+  chips?: (h: { deliver: (text: string) => void; prefill: (text: string) => void; busy: boolean }) => React.ReactNode;
 };
 
 function QuickChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'red' }) {
@@ -841,10 +868,7 @@ function QuestionCards({
   );
 }
 
-function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
-  // Lightweight session context the model gets (curriculum RAG is added server-side).
-  // When opened from a step, carry the richer step + dog context instead.
-  const context = askStep ? askStep.ctx : `Dog: a ${breed}.`;
+function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -912,24 +936,16 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
   const hasInput = input.trim().length > 0 || !!pending;
 
   return (
-    <div className="scr">
-      {/* mode toggle */}
-      <div style={{ padding: '34px 18px 0' }}>
-        <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-          <div onClick={goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
-          <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick question</div>
-        </div>
-      </div>
-
+    <>
       {/* thread */}
-      <div ref={scrollRef} className="gbsc scroll" style={{ padding: '14px 18px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <ChatBubble role="assistant">
-          {askStep ? (
-            <span>You&apos;re on <strong>{askStep.title}</strong>. Ask me anything about it, or snap a pic of where you&apos;re at and I&apos;ll take a look.</span>
-          ) : (
-            <span>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</span>
-          )}
-        </ChatBubble>
+      <div
+        ref={scrollRef}
+        className={compact ? undefined : 'gbsc scroll'}
+        style={compact
+          ? { maxHeight: 300, overflowY: 'auto', padding: '4px 2px 8px', display: 'flex', flexDirection: 'column', gap: 10 }
+          : { padding: '14px 18px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <ChatBubble role="assistant">{intro}</ChatBubble>
 
         {messages.map((m) => (
           <ChatBubble key={m.id} role={m.role}>
@@ -1010,17 +1026,15 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
       </div>
 
       {/* suggestion chips — one-tap starts, no second box */}
-      <div className="gbsc" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 18px 0' }}>
-        <QuickChip label="What's next?" onClick={() => { if (!busy) { deliver('What should I do next?'); } }} />
-        <QuickChip label="How do I…" onClick={() => prefill('How do I ')} />
-        <QuickChip label="Is this okay?" onClick={() => prefill('Is this okay? ')} />
-        <QuickChip label="Show me a reference" onClick={() => prefill('Show me a reference photo of ')} />
-        <QuickChip label="🚨 Something's wrong" tone="red" onClick={triggerSafety} />
-      </div>
+      {chips && (
+        <div className="gbsc" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: compact ? '2px 0 0' : '4px 18px 0' }}>
+          {chips({ deliver, prefill, busy })}
+        </div>
+      )}
 
       {/* attached-photo preview */}
       {pending && (
-        <div style={{ padding: '8px 18px 0' }}>
+        <div style={{ padding: compact ? '8px 0 0' : '8px 18px 0' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', border: BORDER, borderRadius: 12, padding: 6, boxShadow: HARD2 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pending.url} alt="attached" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, border: BORDER2 }} />
@@ -1044,7 +1058,9 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
       )}
 
       {/* chat bar: [+] · input · mic/send */}
-      <div style={{ padding: '10px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+      <div style={compact
+        ? { padding: '8px 0 2px', display: 'flex', alignItems: 'flex-end', gap: 8 }
+        : { padding: '10px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'flex-end', gap: 10 }}>
         <button onClick={() => fileRef.current?.click()} aria-label="Add photo" style={{ flex: 'none', width: 44, height: 44, borderRadius: '50%', background: 'var(--neutral-fill)', border: BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: HARD2 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
         </button>
@@ -1084,6 +1100,33 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
           }
           if (fileRef.current) fileRef.current.value = ''; // allow re-picking the same file
         }}
+      />
+    </>
+  );
+}
+
+function Quick({ goHome, triggerSafety, breed }: QuickProps) {
+  return (
+    <div className="scr">
+      {/* mode toggle */}
+      <div style={{ padding: '34px 18px 0' }}>
+        <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
+          <div onClick={goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
+          <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick question</div>
+        </div>
+      </div>
+      <ChatPanel
+        context={`Dog: a ${breed}.`}
+        intro={<span>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</span>}
+        chips={({ deliver, prefill, busy }) => (
+          <>
+            <QuickChip label="What's next?" onClick={() => { if (!busy) { deliver('What should I do next?'); } }} />
+            <QuickChip label="How do I…" onClick={() => prefill('How do I ')} />
+            <QuickChip label="Is this okay?" onClick={() => prefill('Is this okay? ')} />
+            <QuickChip label="Show me a reference" onClick={() => prefill('Show me a reference photo of ')} />
+            <QuickChip label="🚨 Something's wrong" tone="red" onClick={triggerSafety} />
+          </>
+        )}
       />
     </div>
   );

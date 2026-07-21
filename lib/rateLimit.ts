@@ -26,7 +26,7 @@ const DEVICE_DAILY = envNum('RATE_DEVICE_DAILY', 150);
 const IP_HOURLY = envNum('RATE_IP_HOURLY', 400);
 
 const LIMIT_MESSAGE =
-  "Buddy needs a quick breather — you've hit the limit for now. Take a stretch and try again in a little while.";
+  "Buddy needs a quick breather. You've hit the limit for now, so take a stretch and try again in a little while.";
 
 // NOTE: trusting x-forwarded-for is safe ON VERCEL ONLY (the platform
 // overwrites it, so clients can't spoof it). If this ever moves hosts or gains

@@ -20,11 +20,13 @@ export function accessRequired(): boolean {
 }
 
 // Constant-time compare so we don't leak the code length/prefix via timing.
+// Case-insensitive on purpose: students type it on phone keyboards where
+// autocapitalize fights them ("Sundance26" must match "SUNDANCE26").
 export function codeOk(input: string | null | undefined): boolean {
   const code = currentCode();
   if (!code) return true; // open when no code is configured
-  const a = Buffer.from(input ?? '', 'utf8');
-  const b = Buffer.from(code, 'utf8');
+  const a = Buffer.from((input ?? '').trim().toLowerCase(), 'utf8');
+  const b = Buffer.from(code.toLowerCase(), 'utf8');
   if (a.length !== b.length) return false;
   try {
     return timingSafeEqual(a, b);
