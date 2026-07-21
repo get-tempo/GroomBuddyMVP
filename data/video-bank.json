@@ -3,36 +3,46 @@
     "youtubeId": "M1oZNFFUJ9s",
     "title": "How to fluff dry a curly coat straight (Julie Harris)",
     "topics": ["bath", "blow-dry", "blow dry", "blowdry", "fluff", "fluff dry", "fluff-dry", "dry", "drying", "force dry", "dryer", "blowout", "straight", "coat"],
-    "breeds": ["Poodle", "Goldendoodle", "Labradoodle", "doodle", "Bichon"]
+    "require": ["bath", "dry", "drying", "blow-dry", "blowout", "fluff", "dryer"],
+    "exclude": ["nails", "ears", "pads", "sanitary"],
+    "breeds": ["Poodle", "Goldendoodle", "Labradoodle", "doodle", "Bichon", "curly"]
   },
   {
     "youtubeId": "DTcVWvW4RXE",
     "title": "How to brush your Goldendoodle (The Nail Pawlor)",
     "topics": ["brush", "brush out", "brushing", "brush-out", "detangle", "de-tangle", "dematt", "de-mat", "demat", "line brushing", "slicker", "tangles", "mats", "matting", "coat"],
-    "breeds": ["Goldendoodle", "Labradoodle", "Poodle", "doodle"],
+    "require": ["brush", "brushing", "brush-out", "detangle", "dematt", "demat", "mats", "matting", "tangles", "slicker"],
+    "exclude": ["nails", "ears", "pads", "sanitary", "bath"],
+    "breeds": ["Goldendoodle", "Labradoodle", "Poodle", "doodle", "curly"],
     "start": 0
   },
   {
     "youtubeId": "X0XCDB6kB7Q",
     "title": "Clipper blades & comb attachments on a doodle body (Go Groomer)",
-    "topics": ["body", "body clip", "clip body", "blend", "blend legs", "even length", "even", "comb attachment", "guard comb", "torso"]
+    "topics": ["body", "body clip", "clip body", "blend", "blend legs", "even length", "even", "comb attachment", "guard comb", "torso"],
+    "require": ["body", "torso", "blend"],
+    "exclude": ["ears", "nails", "feet", "pads", "face", "head", "sanitary", "bath"]
   },
   {
     "youtubeId": "LPyPeSeZ_uk",
     "title": "How to scissor your dog's ears (Grooming By Rudy)",
     "topics": ["ears", "ear", "ear edges", "scissor ears", "tidy ears", "ear leather", "edges", "ear fringe"],
+    "require": ["scissor", "scissoring", "scissors", "tidy", "edges", "fringe", "trim", "trimming", "shape"],
+    "exclude": ["pluck", "plucking", "clean", "cleaning", "powder", "solution", "wax", "hemostat", "infection"],
     "start": 23
   },
   {
     "youtubeId": "vR1AYsJmzzs",
     "title": "How to clip pads and scissor round feet (Melanie Newman)",
     "topics": ["feet", "foot", "pads", "paw", "paws", "round feet", "rounded", "tidy feet", "scissor feet", "toes"],
+    "require": ["feet", "foot", "pads", "paws", "paw", "toes"],
     "start": 57
   },
   {
     "youtubeId": "sccDR8n3yOY",
     "title": "Trimming Nails for Dogs (ASPCA Grooming 101)",
     "topics": ["nails", "nail", "trim nails", "nail trim", "quick", "clippers", "grinder", "dewclaw", "toenails"],
+    "require": ["nails", "nail", "dewclaw", "toenails"],
     "start": 51
   }
 ]

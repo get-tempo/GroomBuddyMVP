@@ -7,6 +7,7 @@ import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
 import { logEvent, getSessionId, getDeviceId } from '@/lib/analytics';
+import { parsePlanSteps } from '@/lib/planSteps';
 
 // ============================================================
 // Grooming Buddy — single-screen state machine.
@@ -77,6 +78,7 @@ export default function BuddyApp() {
   const [breed, setBreed] = useState('Goldendoodle'); // the dog on the table (set at intake)
   const [dog, setDog] = useState<Intake | null>(null); // full intake, for step-chat context
   const [planLoading, setPlanLoading] = useState(false);
+  const [planStreaming, setPlanStreaming] = useState(false); // steps still arriving
   const [planError, setPlanError] = useState(''); // '' = no error; otherwise the message to show
   const [showSafety, setShowSafety] = useState(false);
   const [prevScreen, setPrevScreen] = useState<Screen>('home');
@@ -84,6 +86,20 @@ export default function BuddyApp() {
   // session "portfolio" preview (no writer yet; Den shows the empty state) + survey overlay
   const [photos] = useState<string[]>([]);
   const [showSurvey, setShowSurvey] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  // Soft feedback prompt: once per device, the first time a groom crosses step
+  // 3 (they've really used it, and they're between steps, not mid-scissor).
+  const doneCountNow = done.filter(Boolean).length;
+  useEffect(() => {
+    if (doneCountNow < 3) return;
+    try {
+      if (!localStorage.getItem('gb_fb_prompted')) {
+        localStorage.setItem('gb_fb_prompted', '1');
+        setShowFeedback(true);
+      }
+    } catch { /* storage blocked: just never soft-prompt */ }
+  }, [doneCountNow]);
 
   // Pilot access gate. null = still checking. When the deploy sets ACCESS_CODE,
   // /api/access reports required:true and we show the Gate until the student
@@ -167,14 +183,20 @@ export default function BuddyApp() {
   const setQuickMode = () => setScreen('quick');
 
   // Build the tailored plan from the intake, then drop into the step list.
+  // Streamed plan build: parse complete step objects out of the partial text as
+  // it arrives and render them immediately — the student is on the step list as
+  // soon as step 1 exists, and the rest fill in behind a small loader row.
   const buildPlan = async (intake: Intake) => {
     setPlanLoading(true);
     setPlanError('');
     setBreed(intake.breed);
     setDog(intake);
     const genericMsg = "Couldn't build the plan just now. Check your connection and tap again.";
-    try {
-      const r = await fetch('/api/plan', {
+
+    // Returns how many steps it managed to show. `fallback` retries on the main
+    // model when the fast plan model streamed nothing usable.
+    const attempt = async (fallback: boolean): Promise<number> => {
+      const r = await fetch(`/api/plan${fallback ? '?m=main' : ''}`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -189,31 +211,72 @@ export default function BuddyApp() {
         if (r.status === 429) {
           try { msg = ((await r.json()) as { error?: string }).error ?? msg; } catch { /* keep generic */ }
         }
-        setPlanError(msg); // stays on the intake screen with a retry
-        return;
+        throw new Error(msg);
       }
-      const data = (await r.json()) as { steps?: GroomStep[] };
-      if (!Array.isArray(data.steps) || data.steps.length === 0) throw new Error('empty plan');
-      setPlan(data.steps);
-      setDone(Array(data.steps.length).fill(false));
-      setStepIdx(0);
-      setScreen('steps');
-      logEvent('plan_built', { breed: intake.breed, coat: intake.coat, style: intake.style, steps: data.steps.length });
-    } catch {
-      setPlanError(genericMsg);
+      if (!r.body) throw new Error(genericMsg);
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let text = '';
+      let shown = 0;
+      for (;;) {
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+        try {
+          chunk = await reader.read();
+        } catch {
+          break; // stream dropped mid-way: keep whatever steps already landed
+        }
+        const { done: streamDone, value } = chunk;
+        if (streamDone) break;
+        text += decoder.decode(value, { stream: true });
+        const steps = parsePlanSteps(text).slice(0, 12);
+        if (steps.length > shown) {
+          setPlan(steps);
+          if (shown === 0) {
+            // First step landed: reset progress and go. The list grows in place.
+            setDone(Array(steps.length).fill(false));
+            setStepIdx(0);
+            setSelStep(0);
+            setPlanLoading(false);
+            setPlanStreaming(true);
+            setScreen('steps');
+          } else {
+            // Grow `done` without clobbering boxes ticked while streaming.
+            setDone((prev) => {
+              const next = prev.slice();
+              while (next.length < steps.length) next.push(false);
+              return next;
+            });
+          }
+          shown = steps.length;
+        }
+      }
+      return shown;
+    };
+
+    try {
+      let shown = await attempt(false);
+      if (shown === 0) shown = await attempt(true); // fast model gave nothing — retry on main
+      if (shown === 0) throw new Error(genericMsg);
+      logEvent('plan_built', { breed: intake.breed, coat: intake.coat, style: intake.style, steps: shown });
+    } catch (e) {
+      setPlanError(e instanceof Error && e.message ? e.message : genericMsg);
+      setScreen('setup'); // in case a partial stream already navigated away
     } finally {
       setPlanLoading(false);
+      setPlanStreaming(false);
     }
   };
 
+  // "Got it" applies to the step being VIEWED (selStep), not the sequential
+  // pointer. Finishing step 5 means 1-5 are done (you did them to get there);
+  // re-viewing an already-done step marks nothing extra.
   const gotItNext = () => {
     const d = done.slice();
-    d[stepIdx] = true;
+    if (!d[selStep]) for (let k = 0; k <= selStep; k++) d[k] = true;
     setDone(d);
-    const wasLast = stepIdx === plan.length - 1;
-    setStepIdx(Math.min(stepIdx + 1, plan.length - 1));
+    setStepIdx(Math.min(selStep + 1, plan.length - 1));
     setScreen('steps');
-    if (wasLast || d.every(Boolean)) { logEvent('groom_complete', {}); setShowSurvey(true); }
+    if (d.every(Boolean)) { logEvent('groom_complete', {}); setShowSurvey(true); }
   };
   const goDen = () => { setPrevScreen(screen); setScreen('progress'); };
   const backFromDen = () => setScreen(prevScreen || 'home');
@@ -234,7 +297,7 @@ export default function BuddyApp() {
         <Setup back={goHome} onBuild={buildPlan} loading={planLoading} error={planError} />
       )}
       {screen === 'steps' && (
-        <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
+        <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} streaming={planStreaming} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
       )}
       {screen === 'detail' && (
         <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} dog={dog} backToList={backToList} gotItNext={gotItNext} />
@@ -244,8 +307,22 @@ export default function BuddyApp() {
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
+      {/* persistent, out-of-the-way feedback nib (sits in the empty status-bar strip) */}
+      {!showFeedback && !showSurvey && !showSafety && (
+        <button
+          onClick={() => setShowFeedback(true)}
+          aria-label="Give feedback"
+          // Lives entirely inside the empty status strip (every screen's own
+          // content starts at y=34+), so it can't overlap header rows/badges.
+          style={{ position: 'absolute', top: 4, right: 10, zIndex: 60, width: 28, height: 28, borderRadius: '50%', border: BORDER2, background: '#fff', boxShadow: HARD2, cursor: 'pointer', fontSize: 13, lineHeight: 1, opacity: 0.9, padding: 0 }}
+        >
+          💬
+        </button>
+      )}
+
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
       {showSurvey && <Survey sessionId={getSessionId()} close={() => setShowSurvey(false)} />}
+      {showFeedback && <Feedback close={() => setShowFeedback(false)} />}
     </div>
   );
 }
@@ -463,7 +540,7 @@ function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGro
 // ============================================================
 // SCREEN 2b — Guided intake: breed + coat + style -> build the plan
 // ============================================================
-const BREEDS = ['Goldendoodle', 'Labradoodle', 'Poodle', 'Shih Tzu', 'Yorkie', 'Maltese', 'Bichon', 'Schnauzer', 'Cocker Spaniel', 'Doodle mix'];
+const BREEDS = ['Goldendoodle', 'Labradoodle', 'Poodle', 'Golden Retriever', 'Shih Tzu', 'Yorkie', 'Maltese', 'Bichon', 'Schnauzer', 'Cocker Spaniel', 'Doodle mix'];
 // Coat = matting level (what actually changes the plan + safety). A bath is
 // assumed for every groom, so it's not a choice here.
 const COATS = ['No mats, smooth', 'A few tangles', 'Matted in spots', 'Matted to the skin'];
@@ -561,7 +638,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
 // ============================================================
 // SCREEN 3 — Steps list
 // ============================================================
-function Steps({ breed, steps, doneCount, done, stepIdx, goHome, openDetail, setQuickMode }: { breed: string; steps: GroomStep[]; doneCount: number; done: boolean[]; stepIdx: number; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void }) {
+function Steps({ breed, steps, doneCount, done, stepIdx, streaming, goHome, openDetail, setQuickMode }: { breed: string; steps: GroomStep[]; doneCount: number; done: boolean[]; stepIdx: number; streaming: boolean; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void }) {
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER }}>
@@ -609,6 +686,16 @@ function Steps({ breed, steps, doneCount, done, stepIdx, goHome, openDetail, set
             </div>
           );
         })}
+        {streaming && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', fontSize: 13, fontWeight: 700, color: 'var(--muted-2)' }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite' }} />
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .2s' }} />
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .4s' }} />
+            </div>
+            Buddy&apos;s writing the rest of the plan…
+          </div>
+        )}
       </div>
       <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div onClick={setQuickMode} style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Ask about any step…</div>
@@ -918,6 +1005,8 @@ function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 116)}px`;
+    // No scrollbar until the text actually exceeds the cap.
+    el.style.overflowY = el.scrollHeight > 116 ? 'auto' : 'hidden';
   }, [input]);
 
   function deliver(text: string) {
@@ -1072,7 +1161,7 @@ function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Buddy anything…"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: 1.4, maxHeight: 116 }}
+          style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none', resize: 'none', overflowY: 'hidden', lineHeight: 1.4, maxHeight: 116 }}
         />
         <button
           onClick={send}
@@ -1089,7 +1178,6 @@ function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
         ref={fileRef}
         type="file"
         accept="image/*,.heic,.heif"
-        capture="environment"
         hidden
         onChange={async (e) => {
           const file = e.target.files?.[0];
@@ -1289,6 +1377,80 @@ function Survey({ sessionId, close }: { sessionId: string; close: () => void }) 
 
             <button onClick={submit} style={{ width: '100%', marginTop: 16, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 15, fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, boxShadow: HARD, cursor: 'pointer' }}>Send it →</button>
             <button onClick={close} style={{ width: '100%', marginTop: 10, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Skip</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// OVERLAY — Quick feedback (the persistent 💬 nib + one soft prompt)
+// ============================================================
+// One rating + one open box, 15 seconds tops. Saved through the anonymous
+// events pipeline (type "feedback"), so no new table or endpoint is needed:
+// select payload from events where type = 'feedback'.
+function Feedback({ close }: { close: () => void }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [sent, setSent] = useState(false);
+
+  async function submit() {
+    if (!rating) return;
+    setSent(true);
+    try {
+      await fetch('/api/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          type: 'feedback',
+          payload: { rating, comment: comment.trim().slice(0, 1200), deviceId: getDeviceId() },
+        }),
+      });
+    } catch {
+      /* keep the thank-you regardless */
+    }
+  }
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 75, background: 'rgba(43,33,26,.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }} onClick={close}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--cream)', borderTop: BORDER3, borderRadius: '32px 32px 0 0', padding: '22px 22px 26px', animation: 'gbSlideUp .32s ease' }}>
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 21, color: INK }}>Thank you! 🐾</div>
+            <button onClick={close} style={{ width: '100%', marginTop: 16, background: 'var(--green)', border: BORDER, borderRadius: 16, padding: 14, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD, cursor: 'pointer' }}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, textAlign: 'center' }}>How&apos;s Buddy doing?</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setRating(n)}
+                  aria-label={`${n} out of 5`}
+                  style={{ width: 46, height: 46, borderRadius: 14, border: rating === n ? BORDER3 : BORDER, background: n <= rating ? 'var(--primary)' : '#fff', boxShadow: n <= rating ? HARD2 : 'none', cursor: 'pointer', fontSize: 20, padding: 0 }}
+                >
+                  🐾
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              placeholder="Ideas, gripes, wishes… anything helps."
+              style={{ width: '100%', marginTop: 14, resize: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: 12, font: 'inherit', fontFamily: FFB, fontSize: 15, color: INK, outline: 'none' }}
+            />
+            <button
+              onClick={submit}
+              disabled={!rating}
+              style={{ width: '100%', marginTop: 14, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 14, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, boxShadow: HARD, cursor: rating ? 'pointer' : 'default', opacity: rating ? 1 : 0.5 }}
+            >
+              Send it →
+            </button>
+            <button onClick={close} style={{ width: '100%', marginTop: 8, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Not now</button>
           </>
         )}
       </div>

@@ -1,5 +1,4 @@
-import { generateText } from 'ai';
-import { z } from 'zod';
+import { streamText } from 'ai';
 import { MODEL, PLAN_MODEL } from '@/lib/model';
 import { PLAN_SYSTEM } from '@/lib/prompt';
 import { retrieveCurriculum } from '@/lib/rag';
@@ -8,28 +7,15 @@ import { allowModelCall } from '@/lib/rateLimit';
 
 // Generate a full-groom plan for ONE dog (Guided mode). The school's canonical
 // method (grounded in curriculum via RAG when available) tailored to breed +
-// coat + style. Uses generateText + JSON parse (the same provider path as the
-// working chat) rather than generateObject, which the OpenRouter provider
-// doesn't reliably support for structured output.
-// Generating a 7-9 step JSON plan takes longer than a chat reply, so give it
-// headroom over the 30s default (a full plan can run 15-40s on Sonnet).
+// coat + style.
+//
+// STREAMED: the route returns the model's raw text as it generates; the client
+// parses complete step objects out of the partial text (lib/planSteps.ts) and
+// renders them as they land — first step on screen in seconds, rest fill in.
+// ?m=main pins the main model (the client's retry path when the fast plan
+// model returns nothing usable).
+// A full plan can run 15-40s, so give headroom over the 30s default.
 export const maxDuration = 60;
-
-// Mirrors the GroomStep shape the UI renders (data/groom-steps.ts).
-const stepSchema = z.object({
-  t: z.string(),
-  quickRead: z.string(),
-  // 2-4 concrete ordered actions. Tolerate a bare string by wrapping it.
-  doNext: z.preprocess(
-    (v) => (typeof v === 'string' ? [v] : v),
-    z.array(z.string()).min(1).max(6),
-  ),
-  cue: z.string(),
-  good: z.string(),
-  watch: z.string(),
-  ref: z.string(),
-});
-type Step = z.infer<typeof stepSchema>;
 
 // Keep the free-text intake bounded (cost/abuse) before any model work.
 const MAX_FIELD = 120;
@@ -42,36 +28,6 @@ function badRequest(message: string) {
     status: 400,
     headers: { 'content-type': 'application/json' },
   });
-}
-
-// Salvage the step objects from the model's text. We scan for balanced { } blocks
-// and keep the ones that validate as a step, so it's robust to code fences, stray
-// prose, and a truncated final object (that block won't balance -> skipped) rather
-// than throwing the whole plan away. Works whether the model wraps the steps in
-// {"steps":[...]} or returns a bare [...] array.
-function parseSteps(text: string): Step[] {
-  const steps: Step[] = [];
-  let depth = 0;
-  let start = -1;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '{') {
-      if (depth === 0) start = i;
-      depth++;
-    } else if (ch === '}') {
-      depth--;
-      if (depth === 0 && start >= 0) {
-        try {
-          const parsed = stepSchema.safeParse(JSON.parse(text.slice(start, i + 1)));
-          if (parsed.success) steps.push(parsed.data);
-        } catch {
-          // not a JSON object / not a step — skip it
-        }
-        start = -1;
-      }
-    }
-  }
-  return steps;
 }
 
 export async function POST(req: Request) {
@@ -120,28 +76,20 @@ export async function POST(req: Request) {
 
   const dog = `Dog: a ${b}. Coat condition: ${c || 'not specified'}. Desired style/length: ${s || 'not specified'}.`;
 
-  const gen = (model: typeof MODEL) =>
-    generateText({
+  // Fast scaffold model by default; the client retries with ?m=main if the
+  // stream yields no parseable steps (bad slug, provider hiccup).
+  const model = new URL(req.url).searchParams.get('m') === 'main' ? MODEL : PLAN_MODEL;
+
+  try {
+    const result = streamText({
       model,
       system,
       prompt: `${dog}\n\nWrite this dog's full-groom plan now as the JSON array.`,
       // Headroom for 7-9 concise steps; the salvage parser tolerates a cut-off tail.
       maxOutputTokens: 3600,
+      onError: (e) => console.error('plan stream error:', e),
     });
-
-  try {
-    // Fast scaffold model first; fall back to the main model if that slug is
-    // unavailable or errors, so a plan always builds.
-    let text: string;
-    try {
-      ({ text } = await gen(PLAN_MODEL));
-    } catch (fastErr) {
-      console.error('plan fast-model failed, falling back to main model:', fastErr);
-      ({ text } = await gen(MODEL));
-    }
-    const steps = parseSteps(text);
-    if (steps.length < 4) throw new Error(`only ${steps.length} valid steps parsed`);
-    return Response.json({ steps: steps.slice(0, 12) });
+    return result.toTextStreamResponse();
   } catch (e) {
     console.error('plan generation failed:', e);
     // The client shows a retry on a non-200.
