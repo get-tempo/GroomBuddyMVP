@@ -11,6 +11,7 @@ import { SYSTEM_PROMPT } from '@/lib/prompt';
 import { findReferenceImages } from '@/lib/imageBank';
 import { retrieveCurriculum } from '@/lib/rag';
 import { accessRequired, codeOk } from '@/lib/access';
+import { allowModelCall } from '@/lib/rateLimit';
 
 // Allow streamed responses up to 30s (Vercel function default is short).
 export const maxDuration = 30;
@@ -51,6 +52,15 @@ export async function POST(req: Request) {
   if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
     return new Response(JSON.stringify({ error: 'A valid access code is required.' }), {
       status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  // Per-device/IP spend cap (see lib/rateLimit.ts). Runs before any model work.
+  const limit = await allowModelCall(req, 'chat');
+  if (!limit.ok) {
+    return new Response(JSON.stringify({ error: limit.message }), {
+      status: 429,
       headers: { 'content-type': 'application/json' },
     });
   }

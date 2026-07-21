@@ -6,7 +6,7 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } fro
 import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
-import { logEvent, getSessionId } from '@/lib/analytics';
+import { logEvent, getSessionId, getDeviceId } from '@/lib/analytics';
 
 // ============================================================
 // Grooming Buddy — single-screen state machine.
@@ -78,7 +78,7 @@ export default function BuddyApp() {
   const [dog, setDog] = useState<Intake | null>(null); // full intake, for step-chat context
   const [askStep, setAskStep] = useState<{ ctx: string; title: string } | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
-  const [planError, setPlanError] = useState(false);
+  const [planError, setPlanError] = useState(''); // '' = no error; otherwise the message to show
   const [showSafety, setShowSafety] = useState(false);
   const [prevScreen, setPrevScreen] = useState<Screen>('home');
 
@@ -103,6 +103,51 @@ export default function BuddyApp() {
     return () => { cancel = true; };
   }, []);
 
+  // ---- slight persistence (no accounts) ----
+  // The groom on the table survives closing the tab: plan + progress + intake
+  // live in localStorage, keyed to the device. Reopen the link mid-groom and
+  // you land back on your step list. Chat history is intentionally NOT kept
+  // (each chat starts fresh). Runs before the deep-link effect so ?s= wins.
+  const hydrated = useRef(false);
+  // savedAt must mean "last actually worked on", not "last opened" — otherwise
+  // merely opening the app refreshes it and the 36h staleness gate below only
+  // ever fires once. Saves in the first few seconds after mount (the mount +
+  // restore re-render, before any human could interact) carry the restored
+  // timestamp forward; later saves are real activity and stamp fresh.
+  const restoredAt = useRef<number | null>(null);
+  const mountedAt = useRef(Date.now());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('gb_state_v1');
+      if (raw) {
+        const s = JSON.parse(raw) as {
+          plan?: GroomStep[]; done?: boolean[]; stepIdx?: number; breed?: string; dog?: Intake | null; savedAt?: number;
+        };
+        if (Array.isArray(s.plan) && s.plan.length > 0 && Array.isArray(s.done) && s.done.length === s.plan.length) {
+          setPlan(s.plan);
+          setDone(s.done);
+          setStepIdx(Math.min(Math.max(0, s.stepIdx ?? 0), s.plan.length - 1));
+          if (typeof s.breed === 'string' && s.breed) setBreed(s.breed);
+          if (s.dog) setDog(s.dog);
+          restoredAt.current = typeof s.savedAt === 'number' ? s.savedAt : null;
+          // Mid-groom AND recent → straight back to the step list. A stale groom
+          // (that dog went home weeks ago) keeps its data but starts at intro.
+          const fresh = typeof s.savedAt === 'number' && Date.now() - s.savedAt < 36 * 60 * 60 * 1000;
+          if (s.dog && !s.done.every(Boolean) && fresh) setScreen('steps');
+        }
+      }
+    } catch { /* corrupted or blocked storage: just start fresh */ }
+    hydrated.current = true;
+  }, []);
+  useEffect(() => {
+    if (!hydrated.current) return; // never clobber storage before the restore ran
+    try {
+      const settling = Date.now() - mountedAt.current < 4000;
+      const savedAt = settling && restoredAt.current != null ? restoredAt.current : Date.now();
+      localStorage.setItem('gb_state_v1', JSON.stringify({ plan, done, stepIdx, breed, dog, savedAt }));
+    } catch { /* storage full/blocked — nothing to do */ }
+  }, [plan, done, stepIdx, breed, dog]);
+
   // Deep-link to a screen via ?s=home|steps|detail|quick|progress
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
   useEffect(() => {
@@ -115,7 +160,7 @@ export default function BuddyApp() {
 
   // ---- navigation / handlers ----
   const goHome = () => setScreen('home');            // the routing screen (full groom vs. quick)
-  const startGroom = () => { setPlanError(false); setScreen('setup'); }; // full-groom intake
+  const startGroom = () => { setPlanError(''); setScreen('setup'); }; // full-groom intake
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: plan[i]?.t }); };
   // Generic chat (from the routing screen / mode toggle): no step context.
@@ -135,16 +180,29 @@ export default function BuddyApp() {
   // Build the tailored plan from the intake, then drop into the step list.
   const buildPlan = async (intake: Intake) => {
     setPlanLoading(true);
-    setPlanError(false);
+    setPlanError('');
     setBreed(intake.breed);
     setDog(intake);
+    const genericMsg = "Couldn't build the plan just now. Check your connection and tap again.";
     try {
       const r = await fetch('/api/plan', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-access-code': localStorage.getItem('gb_access') ?? '' },
+        headers: {
+          'content-type': 'application/json',
+          'x-access-code': localStorage.getItem('gb_access') ?? '',
+          'x-device-id': getDeviceId(),
+        },
         body: JSON.stringify(intake),
       });
-      if (!r.ok) throw new Error('plan request failed');
+      if (!r.ok) {
+        // 429 (rate limit) carries student-facing copy — show it verbatim.
+        let msg = genericMsg;
+        if (r.status === 429) {
+          try { msg = ((await r.json()) as { error?: string }).error ?? msg; } catch { /* keep generic */ }
+        }
+        setPlanError(msg); // stays on the intake screen with a retry
+        return;
+      }
       const data = (await r.json()) as { steps?: GroomStep[] };
       if (!Array.isArray(data.steps) || data.steps.length === 0) throw new Error('empty plan');
       setPlan(data.steps);
@@ -153,7 +211,7 @@ export default function BuddyApp() {
       setScreen('steps');
       logEvent('plan_built', { breed: intake.breed, coat: intake.coat, style: intake.style, steps: data.steps.length });
     } catch {
-      setPlanError(true); // stays on the intake screen with a retry
+      setPlanError(genericMsg);
     } finally {
       setPlanLoading(false);
     }
@@ -423,7 +481,7 @@ const COATS = ['No mats, smooth', 'A few tangles', 'Matted in spots', 'Matted to
 const STYLES = ['Short & easy', 'Medium teddy', 'Longer & fluffy', 'Breed-standard'];
 const OTHER = '__other';
 
-function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (i: Intake) => void; loading: boolean; error: boolean }) {
+function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (i: Intake) => void; loading: boolean; error: string }) {
   const [breed, setBreed] = useState('');
   const [breedOther, setBreedOther] = useState('');
   const [coat, setCoat] = useState('');
@@ -436,7 +494,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
   const ready = !!finalBreed && !!finalCoat && !!finalStyle && !loading;
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
-    <div onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
+    <div key={label} onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
   );
   const otherInput = (val: string, set: (v: string) => void, placeholder: string) => (
     <input
@@ -492,9 +550,9 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
           {chip('Other', style === OTHER, () => setStyle(OTHER))}
         </Section>
         {style === OTHER && otherInput(styleOther, setStyleOther, 'e.g. lion cut, lamb, kennel cut…')}
-        {error && (
+        {!!error && (
           <div style={{ marginTop: 18, background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 12, fontSize: 13, fontWeight: 700, color: 'var(--red-text)' }}>
-            Couldn&apos;t build the plan just now. Check your connection and tap again.
+            {error}
           </div>
         )}
       </div>
@@ -794,20 +852,33 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
         body: { context },
         // Pilot access code (if the deploy set one). Read fresh per request so a
         // student who unlocks mid-session doesn't need a reload.
-        headers: () => ({ 'x-access-code': localStorage.getItem('gb_access') ?? '' }),
+        headers: () => ({
+          'x-access-code': localStorage.getItem('gb_access') ?? '',
+          'x-device-id': getDeviceId(),
+        }),
       }),
     [context],
   );
   // sendAutomaticallyWhen: once the student answers the askQuestions card, the
   // tool result is filled and the model auto-continues to the feedback.
-  const { messages, sendMessage, status, addToolResult } = useChat({
+  const { messages, sendMessage, status, addToolResult, error } = useChat({
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
+  // Friendly text for a failed send. The server puts human-readable copy in
+  // {error} for 429/4xx (rate limit, access code), so surface that when present.
+  const errText = useMemo(() => {
+    if (!error) return null;
+    try {
+      const j = JSON.parse(error.message) as { error?: string };
+      if (j?.error) return j.error;
+    } catch { /* not JSON — fall through */ }
+    return "That didn't go through. Check your connection and try again.";
+  }, [error]);
 
   const [input, setInput] = useState('');
   const [pending, setPending] = useState<{ url: string; mediaType: string; name: string; dark: boolean; blurry: boolean } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const busy = status === 'submitted' || status === 'streaming';
@@ -815,6 +886,15 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, busy]);
+
+  // Grow the chat box with the text (up to ~4 lines), and shrink back when it's
+  // cleared (send/prefill set `input` directly, so keying on it covers both).
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 116)}px`;
+  }, [input]);
 
   function deliver(text: string) {
     const files = pending
@@ -923,6 +1003,9 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
         {busy && messages[messages.length - 1]?.role !== 'assistant' && (
           <ChatBubble role="assistant"><span style={{ fontWeight: 600, color: 'var(--muted-2)' }}>Buddy&apos;s thinking…</span></ChatBubble>
         )}
+        {status === 'error' && errText && (
+          <ChatBubble role="assistant"><span style={{ fontWeight: 700, color: 'var(--red-text)' }}>{errText}</span></ChatBubble>
+        )}
         <div style={{ height: 4 }} />
       </div>
 
@@ -961,18 +1044,19 @@ function Quick({ goHome, triggerSafety, breed, askStep }: QuickProps) {
       )}
 
       {/* chat bar: [+] · input · mic/send */}
-      <div style={{ padding: '10px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '10px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'flex-end', gap: 10 }}>
         <button onClick={() => fileRef.current?.click()} aria-label="Add photo" style={{ flex: 'none', width: 44, height: 44, borderRadius: '50%', background: 'var(--neutral-fill)', border: BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: HARD2 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
         </button>
-        <input
+        <textarea
           ref={inputRef}
           className="gbin"
           value={input}
+          rows={1}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Buddy anything…"
-          onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-          style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none' }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: 1.4, maxHeight: 116 }}
         />
         <button
           onClick={send}

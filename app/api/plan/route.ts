@@ -4,6 +4,7 @@ import { MODEL, PLAN_MODEL } from '@/lib/model';
 import { PLAN_SYSTEM } from '@/lib/prompt';
 import { retrieveCurriculum } from '@/lib/rag';
 import { accessRequired, codeOk } from '@/lib/access';
+import { allowModelCall } from '@/lib/rateLimit';
 
 // Generate a full-groom plan for ONE dog (Guided mode). The school's canonical
 // method (grounded in curriculum via RAG when available) tailored to breed +
@@ -78,6 +79,15 @@ export async function POST(req: Request) {
   if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
     return new Response(JSON.stringify({ error: 'A valid access code is required.' }), {
       status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  // Per-device/IP spend cap (see lib/rateLimit.ts). Runs before any model work.
+  const limit = await allowModelCall(req, 'plan');
+  if (!limit.ok) {
+    return new Response(JSON.stringify({ error: limit.message }), {
+      status: 429,
       headers: { 'content-type': 'application/json' },
     });
   }
