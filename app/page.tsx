@@ -120,18 +120,30 @@ export default function BuddyApp() {
   const [showSurvey, setShowSurvey] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
 
-  // Soft feedback prompt: once per device, the first time a groom crosses step
-  // 3 (they've really used it, and they're between steps, not mid-scissor).
+  // Periodic feedback nudge: a little speech bubble by the 💬 nib, not a
+  // takeover. Fires once a groom crosses step 3 (they've really used it, and
+  // they're between steps, not mid-scissor), at most once every 2 days per
+  // device, and rests a week after they actually send feedback. Tapping it
+  // opens the same Feedback sheet as the nib; it also self-dismisses.
+  const [showNudge, setShowNudge] = useState(false);
   const doneCountNow = done.filter(Boolean).length;
   useEffect(() => {
     if (doneCountNow < 3) return;
     try {
-      if (!localStorage.getItem('gb_fb_prompted')) {
-        localStorage.setItem('gb_fb_prompted', '1');
-        setShowFeedback(true);
-      }
-    } catch { /* storage blocked: just never soft-prompt */ }
+      const now = Date.now();
+      const sentAt = Number(localStorage.getItem('gb_fb_sent_at') ?? 0);
+      const nudgedAt = Number(localStorage.getItem('gb_fb_nudged_at') ?? 0);
+      if (now - sentAt < 7 * 24 * 3_600_000) return;
+      if (now - nudgedAt < 2 * 24 * 3_600_000) return;
+      localStorage.setItem('gb_fb_nudged_at', String(now));
+      setShowNudge(true);
+    } catch { /* storage blocked: just never nudge */ }
   }, [doneCountNow]);
+  useEffect(() => {
+    if (!showNudge) return;
+    const t = setTimeout(() => setShowNudge(false), 12_000);
+    return () => clearTimeout(t);
+  }, [showNudge]);
 
   // ---- groom chat: the "ask about any step" SHEET over the step list ----
   // Typing happens in the steps screen's bottom bar; the answer slides up over
@@ -438,15 +450,33 @@ export default function BuddyApp() {
 
       {/* persistent, out-of-the-way feedback nib (sits in the empty status-bar strip) */}
       {!showFeedback && !showSurvey && !showSafety && (
-        <button
-          onClick={() => setShowFeedback(true)}
-          aria-label="Give feedback"
-          // Lives entirely inside the empty status strip (every screen's own
-          // content starts at y=34+), so it can't overlap header rows/badges.
-          style={{ position: 'absolute', top: 4, right: 10, zIndex: 60, width: 28, height: 28, borderRadius: '50%', border: BORDER2, background: '#fff', boxShadow: HARD2, cursor: 'pointer', fontSize: 13, lineHeight: 1, opacity: 0.9, padding: 0 }}
-        >
-          💬
-        </button>
+        <>
+          <button
+            onClick={() => setShowFeedback(true)}
+            aria-label="Give feedback"
+            // Lives entirely inside the empty status strip (every screen's own
+            // content starts at y=34+), so it can't overlap header rows/badges.
+            style={{ position: 'absolute', top: 4, right: 10, zIndex: 60, width: 28, height: 28, borderRadius: '50%', border: BORDER2, background: '#fff', boxShadow: HARD2, cursor: 'pointer', fontSize: 13, lineHeight: 1, opacity: 0.9, padding: 0 }}
+          >
+            💬
+          </button>
+          {showNudge && (
+            <div
+              onClick={() => { setShowNudge(false); setShowFeedback(true); }}
+              role="button"
+              style={{ position: 'absolute', top: 38, right: 10, zIndex: 60, maxWidth: 216, background: '#fff', border: BORDER2, borderRadius: '14px 4px 14px 14px', padding: '9px 26px 9px 11px', boxShadow: HARD2, fontFamily: FFB, fontWeight: 800, fontSize: 12.5, lineHeight: 1.35, color: INK, cursor: 'pointer', animation: 'gbPop .25s ease' }}
+            >
+              Leave us a quick note so Buddy keeps getting better 🐾
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowNudge(false); }}
+                aria-label="Dismiss"
+                style={{ position: 'absolute', top: 4, right: 6, border: 'none', background: 'transparent', fontWeight: 900, fontSize: 14, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1, padding: 2 }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {showSafety && <Safety stoppedGetHelp={stoppedGetHelp} closeSafety={() => setShowSafety(false)} />}
@@ -1267,6 +1297,105 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatP
   const send = () => { if (!busy) deliver(input.trim()); };
   const prefill = (s: string) => { setInput(s); setTimeout(() => inputRef.current?.focus(), 0); };
 
+  // ---- voice input: hold court with Buddy hands-free ----
+  // Mic button (shows when the box is empty) records via MediaRecorder under a
+  // full-screen "Buddy is listening" overlay, sends the clip to /api/transcribe
+  // (Whisper), and drops the transcript into the input to review + send. The
+  // transcript is NOT auto-sent: mis-hearings mid-groom are worse than one tap.
+  const [rec, setRec] = useState<'idle' | 'listening' | 'thinking'>('idle');
+  const [recSecs, setRecSecs] = useState(0);
+  const [recErr, setRecErr] = useState('');
+  const recRef = useRef<MediaRecorder | null>(null);
+  const recChunks = useRef<Blob[]>([]);
+  const recCancel = useRef(false);
+  const recTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashRecErr(msg: string) {
+    setRecErr(msg);
+    if (recErrTimer.current) clearTimeout(recErrTimer.current);
+    recErrTimer.current = setTimeout(() => setRecErr(''), 6000);
+  }
+  function recCleanup() {
+    if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null; }
+    recRef.current?.stream.getTracks().forEach((t) => t.stop());
+    recRef.current = null;
+  }
+
+  async function transcribe(blob: Blob) {
+    try {
+      const fd = new FormData();
+      fd.append('audio', blob, blob.type.includes('mp4') ? 'voice.mp4' : 'voice.webm');
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'x-access-code': localStorage.getItem('gb_access') ?? '', 'x-device-id': getDeviceId() },
+        body: fd,
+      });
+      const j = (await res.json().catch(() => ({}))) as { text?: string; error?: string };
+      if (!res.ok) { flashRecErr(j.error ?? "That didn't go through. Try again?"); return; }
+      if (!j.text) { flashRecErr("Buddy didn't catch that. A bit closer to the mic?"); return; }
+      const heard = j.text;
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${heard}` : heard));
+      logEvent('voice_input', { chars: heard.length });
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } catch {
+      flashRecErr("That didn't go through. Check your connection and try again.");
+    } finally {
+      setRec('idle');
+    }
+  }
+
+  async function startVoice() {
+    setRecErr('');
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      flashRecErr("This browser can't record voice. Typing still works great.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // iOS Safari records audio/mp4; Chrome/Android prefer webm+opus.
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => MediaRecorder.isTypeSupported(m));
+      const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      recChunks.current = [];
+      recCancel.current = false;
+      recorder.ondataavailable = (e) => { if (e.data.size) recChunks.current.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(recChunks.current, { type: recorder.mimeType || 'audio/mp4' });
+        recCleanup();
+        if (recCancel.current) { setRec('idle'); return; }
+        void transcribe(blob);
+      };
+      recRef.current = recorder;
+      recorder.start(1000);
+      setRecSecs(0);
+      recTimer.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
+      setRec('listening');
+    } catch {
+      flashRecErr('Buddy needs mic permission for voice. You can still type.');
+    }
+  }
+
+  function stopVoice(sendIt: boolean) {
+    const r = recRef.current;
+    if (!r) return;
+    recCancel.current = !sendIt;
+    setRec(sendIt ? 'thinking' : 'idle');
+    try { r.stop(); } catch { recCleanup(); setRec('idle'); }
+  }
+
+  // Hard cap so a pocket-recording can't run forever (server caps size too).
+  useEffect(() => {
+    if (rec === 'listening' && recSecs >= 90) stopVoice(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recSecs, rec]);
+  // Unmount mid-recording: kill the mic, drop the clip.
+  useEffect(() => () => {
+    recCancel.current = true;
+    try { recRef.current?.stop(); } catch { /* already stopped */ }
+    recCleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // A question handed in from outside (steps bar → groom chat sheet).
   useEffect(() => {
     if (!ask?.text) return;
@@ -1399,6 +1528,11 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatP
         </div>
       )}
 
+      {/* transient voice error (mic denied, transcription hiccup) */}
+      {recErr && (
+        <div style={{ padding: compact ? '6px 0 0' : '6px 18px 0', fontSize: 12, fontWeight: 700, color: 'var(--red-text)' }}>{recErr}</div>
+      )}
+
       {/* chat bar: [+] · input · mic/send */}
       <div style={compact
         ? { padding: '8px 0 2px', display: 'flex', alignItems: 'flex-end', gap: 8 }
@@ -1416,15 +1550,79 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatP
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 14, color: INK, fontFamily: FFB, outline: 'none', resize: 'none', overflowY: 'hidden', lineHeight: 1.4, maxHeight: 116 }}
         />
-        <button
-          onClick={send}
-          disabled={!hasInput || busy}
-          aria-label="Send"
-          style={{ flex: 'none', width: 50, height: 50, borderRadius: '50%', background: 'var(--coral)', border: BORDER3, boxShadow: HARD2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasInput && !busy ? 'pointer' : 'default', opacity: hasInput && !busy ? 1 : 0.4 }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5l7 7-7 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
+        {hasInput ? (
+          <button
+            onClick={send}
+            disabled={busy}
+            aria-label="Send"
+            style={{ flex: 'none', width: 50, height: 50, borderRadius: '50%', background: 'var(--coral)', border: BORDER3, boxShadow: HARD2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: !busy ? 'pointer' : 'default', opacity: !busy ? 1 : 0.4 }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5l7 7-7 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        ) : (
+          // Empty box → the button is a mic (talk instead of type, wet hands).
+          <button
+            onClick={startVoice}
+            aria-label="Talk to Buddy"
+            style={{ flex: 'none', width: 50, height: 50, borderRadius: '50%', background: 'var(--coral)', border: BORDER3, boxShadow: HARD2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="3" width="6" height="11" rx="3" stroke="#fff" strokeWidth="2.5" />
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
       </div>
+
+      {/* full-screen listening overlay: calm, doggy, Pi-style hills */}
+      {rec !== 'idle' && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 95, background: 'var(--cream)', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'gbPop .2s ease' }}>
+          {/* rolling green hills along the bottom */}
+          <div style={{ position: 'absolute', bottom: -150, left: '-25%', width: '150%', height: 280, background: 'var(--green-tint)', borderRadius: '50% 50% 0 0' }} />
+          <div style={{ position: 'absolute', bottom: -205, left: '-15%', width: '130%', height: 280, background: 'var(--green)', borderRadius: '50% 50% 0 0' }} />
+
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 30px', textAlign: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={MASCOT} alt="" style={{ width: 108, height: 108, objectFit: 'cover', borderRadius: '50%', border: BORDER3, boxShadow: HARD, animation: 'gbFloat 2.6s ease-in-out infinite' }} />
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 21, color: INK, marginTop: 20 }}>
+              {rec === 'listening' ? 'Buddy is listening…' : 'Getting that down…'}
+            </div>
+            {rec === 'listening' ? (
+              <>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} style={{ fontSize: 15, animation: `gbType 1.2s ${i * 0.18}s ease-in-out infinite`, display: 'inline-block' }}>🐾</span>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)' }}>
+                  {Math.floor(recSecs / 60)}:{String(recSecs % 60).padStart(2, '0')}
+                </div>
+                <div style={{ marginTop: 4, fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-1)' }}>
+                  Talk to me like I&apos;m right there at the table.
+                </div>
+                <button
+                  onClick={() => stopVoice(true)}
+                  style={{ width: 'min(300px, 76vw)', marginTop: 26, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 14, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, boxShadow: HARD, cursor: 'pointer' }}
+                >
+                  Done talking
+                </button>
+                <button
+                  onClick={() => stopVoice(false)}
+                  style={{ marginTop: 10, background: 'transparent', border: 'none', fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}
+                >
+                  Never mind
+                </button>
+              </>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: INK, animation: `gbType 1.2s ${i * 0.18}s ease-in-out infinite`, display: 'inline-block' }} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* hidden picker behind the ➕ (camera on mobile, library on desktop) */}
       <input
@@ -1651,6 +1849,8 @@ function Feedback({ close }: { close: () => void }) {
   async function submit() {
     if (!rating) return;
     setSent(true);
+    // Rest the periodic nudge for a week; they just gave us what it asks for.
+    try { localStorage.setItem('gb_fb_sent_at', String(Date.now())); } catch { /* fine */ }
     try {
       await fetch('/api/event', {
         method: 'POST',
