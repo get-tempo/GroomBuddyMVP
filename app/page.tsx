@@ -1405,6 +1405,20 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
   const scrollRef = useRef<HTMLDivElement>(null);
   const busy = status === 'submitted' || status === 'streaming';
 
+  // Show the "there's more →" fade/chevron on the chip row until scrolled to the end.
+  const chipScrollRef = useRef<HTMLDivElement>(null);
+  const [chipsMore, setChipsMore] = useState(false);
+  const updateChipScroll = () => {
+    const el = chipScrollRef.current;
+    if (!el) return;
+    setChipsMore(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+  };
+  useEffect(() => {
+    updateChipScroll();
+    window.addEventListener('resize', updateChipScroll);
+    return () => window.removeEventListener('resize', updateChipScroll);
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, busy]);
@@ -1632,10 +1646,26 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
         <div style={{ height: 4 }} />
       </div>
 
-      {/* suggestion chips — one-tap starts, no second box */}
+      {/* suggestion chips — one-tap starts. Lifted off the input bar, with a
+          right-edge fade + chevron so it's clear they scroll sideways. */}
       {chips && (
-        <div className="gbsc" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: compact ? '2px 0 0' : '4px 18px 0' }}>
-          {chips({ deliver, prefill, busy })}
+        <div style={{ position: 'relative', padding: compact ? '8px 0 4px' : '10px 18px 12px' }}>
+          <div
+            ref={chipScrollRef}
+            className="gbsc"
+            onScroll={updateChipScroll}
+            style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingRight: 18 }}
+          >
+            {chips({ deliver, prefill, busy })}
+          </div>
+          {chipsMore && (
+            <div
+              aria-hidden
+              style={{ position: 'absolute', top: compact ? 8 : 10, bottom: compact ? 4 : 12, right: compact ? 0 : 18, width: 42, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: `linear-gradient(to right, transparent, ${compact ? '#fff' : 'var(--cream)'} 62%)` }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </div>
+          )}
         </div>
       )}
 
