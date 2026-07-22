@@ -1781,7 +1781,9 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
 }
 
 function Quick({ goHome, triggerSafety, breed, initialMessages, onMessages }: QuickProps) {
-  const resuming = (initialMessages?.length ?? 0) > 0;
+  // Latched at mount: saving the first exchange updates the record and flips
+  // initialMessages mid-conversation, and the intro must not swap under them.
+  const [resuming] = useState((initialMessages?.length ?? 0) > 0);
   return (
     <div className="scr">
       {/* header: plain back button (the old toggle looked tappable both ways
