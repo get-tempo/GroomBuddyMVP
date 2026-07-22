@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
@@ -97,6 +97,47 @@ function isGroomRec(r: unknown): r is GroomRec {
 
 const MAX_GROOMS = 12;
 
+// A saved Quick chat: quick questions stick around like grooms do. Inline photo
+// data URLs are swapped for a "[Photo]" text part before saving — they'd blow
+// the ~5MB localStorage budget in a handful of chats.
+type ChatRec = { id: string; title: string; messages: UIMessage[]; savedAt: number };
+const MAX_CHATS = 15;
+
+function isChatRec(r: unknown): r is ChatRec {
+  const c = r as ChatRec;
+  return !!c && typeof c.id === 'string' && typeof c.title === 'string' && Array.isArray(c.messages) && c.messages.length > 0;
+}
+
+function sanitizeForSave(messages: UIMessage[]): UIMessage[] {
+  return messages.map((m) => ({
+    ...m,
+    parts: m.parts.map((p) => {
+      const url = (p as { url?: string }).url;
+      return p.type === 'file' && typeof url === 'string' && url.startsWith('data:')
+        ? { type: 'text' as const, text: '[Photo]' }
+        : p;
+    }),
+  })) as UIMessage[];
+}
+
+function chatTitle(messages: UIMessage[]): string {
+  for (const m of messages) {
+    if (m.role !== 'user') continue;
+    for (const p of m.parts) {
+      if (p.type === 'text' && p.text.trim()) return p.text.trim().slice(0, 48);
+    }
+  }
+  return 'Quick question';
+}
+
+function whenLabel(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) return 'Today';
+  if (now.getTime() - ts < 48 * 3600_000) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export default function BuddyApp() {
   const [screen, setScreen] = useState<Screen>('intro');
   const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
@@ -176,10 +217,12 @@ export default function BuddyApp() {
     return () => { cancel = true; };
   }, []);
 
-  // ---- groom persistence (no accounts): a device-local LIST of grooms ----
-  // Every built plan is a saved groom (key gb_grooms_v1). Home shows the list;
-  // tapping one loads it back. Chat history is intentionally NOT kept.
+  // ---- groom + chat persistence (no accounts): device-local LISTS ----
+  // Every built plan is a saved groom (gb_grooms_v1) and every Quick chat is a
+  // saved chat (gb_chats_v1). Home shows both; tapping one loads it back.
   // Runs before the deep-link effect so ?s= wins.
+  const [chats, setChats] = useState<ChatRec[]>([]);
+  const [chatId, setChatId] = useState(''); // the Quick chat currently open
   const hydrated = useRef(false);
   // savedAt must mean "last actually worked on", not "last opened" — otherwise
   // merely opening the app refreshes it and the 36h auto-resume gate below only
@@ -231,6 +274,15 @@ export default function BuddyApp() {
         setScreen('steps');
       }
     } catch { /* corrupted or blocked storage: just start fresh */ }
+    try {
+      const rawChats = localStorage.getItem('gb_chats_v1');
+      if (rawChats) {
+        const parsed: unknown = JSON.parse(rawChats);
+        if (Array.isArray(parsed)) {
+          setChats(parsed.filter(isChatRec).sort((a, b) => b.savedAt - a.savedAt).slice(0, MAX_CHATS));
+        }
+      }
+    } catch { /* corrupted chats: start with none */ }
     hydrated.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -271,6 +323,37 @@ export default function BuddyApp() {
     }
   };
 
+  // ---- Quick-chat records: saved after each finished exchange ----
+  const saveChat = (id: string, msgs: UIMessage[]) => {
+    if (!id || msgs.length === 0) return;
+    setChats((prev) => {
+      const rec: ChatRec = { id, title: chatTitle(msgs), messages: sanitizeForSave(msgs), savedAt: Date.now() };
+      const next = [rec, ...prev.filter((c) => c.id !== id)].slice(0, MAX_CHATS);
+      try {
+        localStorage.setItem('gb_chats_v1', JSON.stringify(next));
+      } catch {
+        // Storage full: drop the oldest half and try once more, then give up
+        // quietly (the open chat still works, it just won't persist).
+        const trimmed = next.slice(0, Math.max(1, Math.ceil(next.length / 2)));
+        try { localStorage.setItem('gb_chats_v1', JSON.stringify(trimmed)); return trimmed; } catch { return prev; }
+      }
+      return next;
+    });
+  };
+  const resumeChat = (id: string) => {
+    setChatId(id);
+    setScreen('quick');
+    logEvent('chat_resumed', {});
+  };
+  const removeChat = (id: string) => {
+    setChats((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      try { localStorage.setItem('gb_chats_v1', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    if (id === chatId) setChatId('');
+  };
+
   // Deep-link to a screen via ?s=home|steps|detail|quick|progress
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
   useEffect(() => {
@@ -286,9 +369,14 @@ export default function BuddyApp() {
   const startGroom = () => { setPlanError(''); setScreen('setup'); }; // full-groom intake
   const backToList = () => setScreen('steps');
   const openDetail = (i: number) => { setSelStep(i); setScreen('detail'); logEvent('step_open', { step: i + 1, title: plan[i]?.t }); };
-  // Generic chat (from the routing screen / mode toggle): no step context.
-  // Step-specific questions are answered inline on the Detail screen now.
-  const setQuickMode = () => setScreen('quick');
+  // Generic chat (from Home): no step context. Step-specific questions are
+  // answered inline on the Detail screen now. Every open mints/loads a chat
+  // record so quick questions persist like grooms do.
+  const setQuickMode = () => { setChatId(newGroomId()); setScreen('quick'); };
+  // Deep links (?s=quick) skip setQuickMode; make sure a chat id exists.
+  useEffect(() => {
+    if (screen === 'quick' && !chatId) setChatId(newGroomId());
+  }, [screen, chatId]);
 
   // Build the tailored plan from the intake, then drop into the step list.
   // Streamed plan build: parse complete step objects out of the partial text as
@@ -402,7 +490,7 @@ export default function BuddyApp() {
       {/* status-bar notch breathing room is built into each screen's top padding */}
       {screen === 'intro' && <Intro letsGroom={goHome} />}
       {screen === 'home' && (
-        <Home goDen={goDen} startGroom={startGroom} setQuickMode={setQuickMode} grooms={grooms} resumeGroom={resumeGroom} removeGroom={removeGroom} />
+        <Home goDen={goDen} startGroom={startGroom} setQuickMode={setQuickMode} grooms={grooms} chats={chats} resumeGroom={resumeGroom} removeGroom={removeGroom} resumeChat={resumeChat} removeChat={removeChat} />
       )}
       {screen === 'setup' && (
         <Setup back={goHome} onBuild={buildPlan} loading={planLoading} error={planError} />
@@ -413,8 +501,9 @@ export default function BuddyApp() {
       {screen === 'detail' && (
         <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} dog={dog} backToList={backToList} gotItNext={gotItNext} />
       )}
-      {screen === 'quick' && (
-        <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
+      {screen === 'quick' && chatId && (
+        // key: switching chats must remount so useChat starts from the record.
+        <Quick key={chatId} goHome={goHome} triggerSafety={triggerSafety} breed={breed} initialMessages={chats.find((c) => c.id === chatId)?.messages} onMessages={(m) => saveChat(chatId, m)} />
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
 
@@ -456,7 +545,9 @@ export default function BuddyApp() {
             aria-label="Give feedback"
             // Lives entirely inside the empty status strip (every screen's own
             // content starts at y=34+), so it can't overlap header rows/badges.
-            style={{ position: 'absolute', top: 4, right: 10, zIndex: 60, width: 28, height: 28, borderRadius: '50%', border: BORDER2, background: '#fff', boxShadow: HARD2, cursor: 'pointer', fontSize: 13, lineHeight: 1, opacity: 0.9, padding: 0 }}
+            // aspectRatio + border-box pin it to a true circle (button UA
+            // styles were stretching it slightly wider than tall).
+            style={{ position: 'absolute', top: 4, right: 10, zIndex: 60, width: 28, height: 28, aspectRatio: '1 / 1', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: BORDER2, background: '#fff', boxShadow: HARD2, cursor: 'pointer', fontSize: 13, lineHeight: 1, opacity: 0.9, padding: 0 }}
           >
             💬
           </button>
@@ -660,7 +751,8 @@ function Intro({ letsGroom }: { letsGroom: () => void }) {
 // ============================================================
 // SCREEN 2 — Home / routing: "what are we doing today?"
 // ============================================================
-function Home({ goDen, startGroom, setQuickMode, grooms, resumeGroom, removeGroom }: { goDen: () => void; startGroom: () => void; setQuickMode: () => void; grooms: GroomRec[]; resumeGroom: (id: string) => void; removeGroom: (id: string) => void }) {
+function Home({ goDen, startGroom, setQuickMode, grooms, chats, resumeGroom, removeGroom, resumeChat, removeChat }: { goDen: () => void; startGroom: () => void; setQuickMode: () => void; grooms: GroomRec[]; chats: ChatRec[]; resumeGroom: (id: string) => void; removeGroom: (id: string) => void; resumeChat: (id: string) => void; removeChat: (id: string) => void }) {
+  const empty = grooms.length === 0 && chats.length === 0;
   return (
     <div className="scr" style={{ padding: '0 18px' }}>
       {/* topbar */}
@@ -673,66 +765,87 @@ function Home({ goDen, startGroom, setQuickMode, grooms, resumeGroom, removeGroo
         </div>
       </div>
 
-      {grooms.length === 0 ? (
-        <>
-          <div style={{ padding: '18px 0 6px' }}>
-            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>What are we doing<br />today?</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one. I&apos;ll take it from there.</div>
-          </div>
+      <div style={{ padding: '18px 0 6px' }}>
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>Your grooms</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>
+          {empty ? 'Nothing here yet. Tap New groom and we’ll get started.' : 'Tap one to jump back in.'}
+        </div>
+      </div>
 
-          {/* two big choices */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
-            <button onClick={startGroom} style={{ textAlign: 'left', background: 'var(--primary)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
-              <div style={{ fontSize: 30 }}>🛁</div>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, marginTop: 8, lineHeight: 1.1 }}>Full groom, start to finish</div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#4A3C30', marginTop: 4, lineHeight: 1.35 }}>Tell me the dog and I&apos;ll build a step-by-step plan just for them.</div>
+      {!empty && (
+        // Grooms + saved chats share one scroll area; the buttons below stay
+        // put no matter how long this gets.
+        <div className="gbsc" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12, overflowY: 'auto', flex: 1, minHeight: 0, paddingBottom: 6 }}>
+          {grooms.map((g) => {
+            const doneN = g.done.filter(Boolean).length;
+            const complete = doneN === g.plan.length;
+            return (
+              <div key={g.id} onClick={() => resumeGroom(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: complete ? '#fff' : 'var(--primary-soft)', border: complete ? BORDER : BORDER3, borderRadius: 16, padding: '12px 13px', boxShadow: complete ? 'none' : HARD2, cursor: 'pointer', opacity: complete ? 0.75 : 1 }}>
+                <div style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: complete ? 'var(--green)' : 'var(--primary)', border: BORDER2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>
+                  {complete ? '✓' : '🐶'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15.5, color: INK, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.breed}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {complete ? `Done · ${g.dog.style}` : `Step ${Math.min(doneN + 1, g.plan.length)} of ${g.plan.length} · ${g.dog.style}`}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); removeGroom(g.id); }}
+                  aria-label="Remove groom"
+                  style={{ flex: 'none', border: 'none', background: 'transparent', fontWeight: 900, fontSize: 16, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1, padding: 6 }}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+
+          {chats.length > 0 && (
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK, margin: '8px 0 0' }}>Quick questions</div>
+          )}
+          {chats.map((c) => (
+            <div key={c.id} onClick={() => resumeChat(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: BORDER, borderRadius: 16, padding: '12px 13px', cursor: 'pointer' }}>
+              <div style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: 'var(--coral)', border: BORDER2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
+                💬
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted-1)' }}>{whenLabel(c.savedAt)}</div>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); removeChat(c.id); }}
+                aria-label="Remove chat"
+                style={{ flex: 'none', border: 'none', background: 'transparent', fontWeight: 900, fontSize: 16, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1, padding: 6 }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {empty ? (
+        <>
+          {/* first run: two big plain-text choices, no emoji clutter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+            <button onClick={startGroom} style={{ textAlign: 'left', background: 'var(--primary)', border: BORDER, borderRadius: 20, padding: '22px 20px', boxShadow: HARD, cursor: 'pointer' }}>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 23, color: INK, lineHeight: 1.1 }}>New groom</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#4A3C30', marginTop: 6, lineHeight: 1.35 }}>Tell me the dog and I&apos;ll build a step-by-step plan just for them.</div>
             </button>
-            <button onClick={setQuickMode} style={{ textAlign: 'left', background: 'var(--coral)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
-              <div style={{ fontSize: 30 }}>💬</div>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: '#fff', marginTop: 8, lineHeight: 1.1 }}>Quick question about one spot</div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,.92)', marginTop: 4, lineHeight: 1.35 }}>Stuck on one thing? Ask me or send a photo and I&apos;ll coach you.</div>
+            <button onClick={setQuickMode} style={{ textAlign: 'left', background: 'var(--coral)', border: BORDER, borderRadius: 20, padding: '22px 20px', boxShadow: HARD, cursor: 'pointer' }}>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 23, color: '#fff', lineHeight: 1.1 }}>Quick question</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,.92)', marginTop: 6, lineHeight: 1.35 }}>Stuck on one thing? Ask me or send a photo and I&apos;ll coach you.</div>
             </button>
           </div>
+          <div style={{ flex: 1 }} />
         </>
       ) : (
-        <>
-          <div style={{ padding: '18px 0 6px' }}>
-            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>Your grooms</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Tap one to jump back in.</div>
-          </div>
-          <div className="gbsc" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12, overflowY: 'auto', flex: 1, minHeight: 0, paddingBottom: 6 }}>
-            {grooms.map((g) => {
-              const doneN = g.done.filter(Boolean).length;
-              const complete = doneN === g.plan.length;
-              return (
-                <div key={g.id} onClick={() => resumeGroom(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: complete ? '#fff' : 'var(--primary-soft)', border: complete ? BORDER : BORDER3, borderRadius: 16, padding: '12px 13px', boxShadow: complete ? 'none' : HARD2, cursor: 'pointer', opacity: complete ? 0.75 : 1 }}>
-                  <div style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: complete ? 'var(--green)' : 'var(--primary)', border: BORDER2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>
-                    {complete ? '✓' : '🐶'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15.5, color: INK, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.breed}</div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {complete ? `Done · ${g.dog.style}` : `Step ${Math.min(doneN + 1, g.plan.length)} of ${g.plan.length} · ${g.dog.style}`}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeGroom(g.id); }}
-                    aria-label="Remove groom"
-                    style={{ flex: 'none', border: 'none', background: 'transparent', fontWeight: 900, fontSize: 16, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1, padding: 6 }}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: 'flex', gap: 10, padding: '12px 0 4px' }}>
-            <button onClick={startGroom} style={{ flex: 1, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>🛁 New groom</button>
-            <button onClick={setQuickMode} style={{ flex: 1, background: 'var(--coral)', border: BORDER, borderRadius: 16, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>💬 Quick question</button>
-          </div>
-        </>
+        <div style={{ display: 'flex', gap: 10, padding: '12px 0 4px' }}>
+          <button onClick={startGroom} style={{ flex: 1, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>New groom</button>
+          <button onClick={setQuickMode} style={{ flex: 1, background: 'var(--coral)', border: BORDER, borderRadius: 16, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>Quick question</button>
+        </div>
       )}
-      {grooms.length === 0 && <div style={{ flex: 1 }} />}
     </div>
   );
 }
@@ -1106,6 +1219,9 @@ type QuickProps = {
   goHome: () => void;
   triggerSafety: () => void;
   breed: string;
+  // Saved-chat plumbing: restore a record's messages, report new ones upward.
+  initialMessages?: UIMessage[];
+  onMessages?: (messages: UIMessage[]) => void;
 };
 
 // The reusable live-chat panel (thread + chips + input + photo picker). The
@@ -1122,6 +1238,10 @@ type ChatPanelProps = {
   // chat sheet this way). Bump `n` for each ask; consumed exactly once.
   ask?: { text: string; n: number } | null;
   onAskConsumed?: () => void;
+  // Saved-chat plumbing (Quick tab only): seed the thread from a record and
+  // report the messages after each finished exchange so the parent can persist.
+  initialMessages?: UIMessage[];
+  onMessages?: (messages: UIMessage[]) => void;
 };
 
 function QuickChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'red' }) {
@@ -1238,7 +1358,7 @@ function QuestionCards({
   );
 }
 
-function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatPanelProps) {
+function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initialMessages, onMessages }: ChatPanelProps) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -1257,8 +1377,16 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatP
   // tool result is filled and the model auto-continues to the feedback.
   const { messages, sendMessage, status, addToolResult, error } = useChat({
     transport,
+    messages: initialMessages,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
+  // Persist upward once each exchange settles. Guarded by "grew since mount" so
+  // merely opening a saved chat doesn't re-stamp its savedAt.
+  const initialLen = useRef(initialMessages?.length ?? 0);
+  useEffect(() => {
+    if (status === 'ready' && messages.length > initialLen.current) onMessages?.(messages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, messages.length]);
   // Friendly text for a failed send. The server puts human-readable copy in
   // {error} for 429/4xx (rate limit, access code), so surface that when present.
   const errText = useMemo(() => {
@@ -1652,19 +1780,23 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatP
   );
 }
 
-function Quick({ goHome, triggerSafety, breed }: QuickProps) {
+function Quick({ goHome, triggerSafety, breed, initialMessages, onMessages }: QuickProps) {
+  const resuming = (initialMessages?.length ?? 0) > 0;
   return (
     <div className="scr">
-      {/* mode toggle */}
-      <div style={{ padding: '34px 18px 0' }}>
-        <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 4, display: 'flex', boxShadow: HARD }}>
-          <div onClick={goHome} style={{ flex: 1, textAlign: 'center', padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: 'var(--muted-2)', cursor: 'pointer' }}>Guided groom</div>
-          <div style={{ flex: 1, textAlign: 'center', background: 'var(--coral)', borderRadius: 12, padding: 10, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff' }}>Quick question</div>
-        </div>
+      {/* header: plain back button (the old toggle looked tappable both ways
+          but "Guided groom" just went Home — confusing) */}
+      <div style={{ padding: '38px 18px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <ChevronL onClick={goHome} />
+        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 21, color: INK, lineHeight: 1 }}>Quick question</div>
       </div>
       <ChatPanel
+        initialMessages={initialMessages}
+        onMessages={onMessages}
         context={`Dog: a ${breed}.`}
-        intro={<span>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</span>}
+        intro={resuming
+          ? <span>Picking up right where we left off. What else can I help with?</span>
+          : <span>I&apos;m right here. Ask me anything, tap a button below, or snap a pic with the ➕. What&apos;s up?</span>}
         chips={({ deliver, prefill, busy }) => (
           <>
             <QuickChip label="What's next?" onClick={() => { if (!busy) { deliver('What should I do next?'); } }} />
