@@ -983,6 +983,7 @@ function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: G
   // Inline step chat: the answer shows up right here on the step, not on the
   // Quick tab. Closed by default; state resets naturally when the step changes.
   const [chatOpen, setChatOpen] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => setChatOpen(false), [i]);
   const who = dog ? `a ${dog.breed}, coat: ${dog.coat}, going for ${dog.style}` : `a ${breed}`;
   const stepCtx = `The student is doing a full guided groom on ${who} and is on step ${i + 1} of ${total}: "${d.t}" (${d.quickRead}). Answer about THIS step specifically. They may send a photo of their progress on it.`;
@@ -998,7 +999,7 @@ function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: G
           <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, color: INK, lineHeight: 1 }}>{d.t}</div>
         </div>
       </div>
-      <div className="gbsc scroll" style={{ padding: '16px 16px 22px', display: 'flex', flexDirection: 'column', gap: 13 }}>
+      <div ref={contentRef} className="gbsc scroll" style={{ padding: '16px 16px 22px', display: 'flex', flexDirection: 'column', gap: 13 }}>
         <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 14, boxShadow: HARD }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.45 }}>{d.quickRead}</div>
         </div>
@@ -1020,7 +1021,7 @@ function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: G
             <span style={{ fontFamily: FFD, fontWeight: 800, color: '#fff', fontSize: 15 }}>!</span>
           </div>
           <div>
-            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK }}>Buddy&apos;s cue</div>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK }}>Pro tip</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#4A3C30', lineHeight: 1.4 }}>{d.cue}</div>
           </div>
         </div>
@@ -1056,16 +1057,8 @@ function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: G
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red-text-2)', lineHeight: 1.35, marginTop: 3 }}>{d.watch}</div>
           </div>
         </div>
-        {/* Depth on demand: contextual chat about THIS step, answered in place. */}
-        <button
-          onClick={() => {
-            setChatOpen((v) => !v);
-            if (!chatOpen) logEvent('ask_about_step', { step: i + 1, title: d.t });
-          }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}
-        >
-          💬 {chatOpen ? 'Hide the chat' : 'Ask Buddy about this step'}
-        </button>
+        {/* Depth on demand: contextual chat about THIS step, answered in place.
+            Opened from the always-visible Ask Buddy half of the bottom bar. */}
         {chatOpen && (
           <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: 12, boxShadow: HARD }}>
             <ChatPanel
@@ -1083,8 +1076,23 @@ function Detail({ step, i, total, breed, dog, backToList, gotItNext }: { step: G
           </div>
         )}
       </div>
+      {/* Ask Buddy lives here permanently (founder: always visible, easy to
+          find); back-to-list is the top-left chevron, so no third button. */}
       <div style={{ padding: '12px 16px 22px', borderTop: BORDER, background: '#fff', display: 'flex', gap: 10 }}>
-        <button onClick={backToList} style={{ flex: 'none', background: '#fff', border: BORDER, borderRadius: 14, padding: '13px 16px', fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>‹ Steps</button>
+        <button
+          onClick={() => {
+            const opening = !chatOpen;
+            setChatOpen(opening);
+            if (opening) {
+              logEvent('ask_about_step', { step: i + 1, title: d.t });
+              // The chat panel sits at the bottom of the scroll area; bring it into view.
+              setTimeout(() => contentRef.current?.scrollTo({ top: contentRef.current.scrollHeight, behavior: 'smooth' }), 60);
+            }
+          }}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--coral)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}
+        >
+          💬 {chatOpen ? 'Hide chat' : 'Ask Buddy'}
+        </button>
         <button onClick={gotItNext} style={{ flex: 1, background: 'var(--green)', border: BORDER, borderRadius: 14, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 15, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>Got it, next ✓</button>
       </div>
     </div>
