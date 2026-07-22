@@ -8,6 +8,7 @@ import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
 import { logEvent, getSessionId, getDeviceId } from '@/lib/analytics';
 import { parsePlanSteps } from '@/lib/planSteps';
+import { BREED_INTAKE, COAT_TYPES, COAT_TYPE_QUESTION, resolveTypedBreed, type IntakeSet } from '@/data/breed-intake';
 
 // ============================================================
 // Grooming Buddy — single-screen state machine.
@@ -67,6 +68,35 @@ function ChevronL({ size = 20, onClick }: { size?: number; onClick?: () => void 
     </svg>
   );
 }
+// A saved groom (active or finished). Grooms are first-class now: every built
+// plan lives in a device-local list the student can leave and come back to.
+type GroomRec = {
+  id: string;
+  dog: Intake;
+  breed: string;
+  plan: GroomStep[];
+  done: boolean[];
+  stepIdx: number;
+  savedAt: number;
+};
+
+function newGroomId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `g_${Math.random().toString(36).slice(2)}`;
+}
+
+function isGroomRec(r: unknown): r is GroomRec {
+  const g = r as GroomRec;
+  return (
+    !!g && typeof g.id === 'string' && !!g.dog &&
+    Array.isArray(g.plan) && g.plan.length > 0 &&
+    Array.isArray(g.done) && g.done.length === g.plan.length
+  );
+}
+
+const MAX_GROOMS = 12;
+
 export default function BuddyApp() {
   const [screen, setScreen] = useState<Screen>('intro');
   const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
@@ -77,6 +107,8 @@ export default function BuddyApp() {
   const [selStep, setSelStep] = useState(0);
   const [breed, setBreed] = useState('Goldendoodle'); // the dog on the table (set at intake)
   const [dog, setDog] = useState<Intake | null>(null); // full intake, for step-chat context
+  const [groomId, setGroomId] = useState(''); // the saved groom record the current state belongs to
+  const [grooms, setGrooms] = useState<GroomRec[]>([]);
   const [planLoading, setPlanLoading] = useState(false);
   const [planStreaming, setPlanStreaming] = useState(false); // steps still arriving
   const [planError, setPlanError] = useState(''); // '' = no error; otherwise the message to show
@@ -101,6 +133,20 @@ export default function BuddyApp() {
     } catch { /* storage blocked: just never soft-prompt */ }
   }, [doneCountNow]);
 
+  // ---- groom chat: the "ask about any step" SHEET over the step list ----
+  // Typing happens in the steps screen's bottom bar; the answer slides up over
+  // the steps. Minimizing keeps the thread alive (the panel stays mounted,
+  // hidden) and a pill above the bar restores it. A new groom resets the chat.
+  const [groomChatOpen, setGroomChatOpen] = useState(false);
+  const [groomChatStarted, setGroomChatStarted] = useState(false);
+  const [groomAsk, setGroomAsk] = useState<{ text: string; n: number } | null>(null);
+  const askFromSteps = (text: string) => {
+    setGroomChatStarted(true);
+    setGroomChatOpen(true);
+    setGroomAsk((p) => ({ text, n: (p?.n ?? 0) + 1 }));
+  };
+  useEffect(() => { setGroomChatStarted(false); setGroomChatOpen(false); setGroomAsk(null); }, [groomId]);
+
   // Pilot access gate. null = still checking. When the deploy sets ACCESS_CODE,
   // /api/access reports required:true and we show the Gate until the student
   // enters the code (stored in localStorage). Open (no gate) when unset.
@@ -118,50 +164,100 @@ export default function BuddyApp() {
     return () => { cancel = true; };
   }, []);
 
-  // ---- slight persistence (no accounts) ----
-  // The groom on the table survives closing the tab: plan + progress + intake
-  // live in localStorage, keyed to the device. Reopen the link mid-groom and
-  // you land back on your step list. Chat history is intentionally NOT kept
-  // (each chat starts fresh). Runs before the deep-link effect so ?s= wins.
+  // ---- groom persistence (no accounts): a device-local LIST of grooms ----
+  // Every built plan is a saved groom (key gb_grooms_v1). Home shows the list;
+  // tapping one loads it back. Chat history is intentionally NOT kept.
+  // Runs before the deep-link effect so ?s= wins.
   const hydrated = useRef(false);
   // savedAt must mean "last actually worked on", not "last opened" — otherwise
-  // merely opening the app refreshes it and the 36h staleness gate below only
+  // merely opening the app refreshes it and the 36h auto-resume gate below only
   // ever fires once. Saves in the first few seconds after mount (the mount +
   // restore re-render, before any human could interact) carry the restored
   // timestamp forward; later saves are real activity and stamp fresh.
   const restoredAt = useRef<number | null>(null);
   const mountedAt = useRef(Date.now());
+
+  const loadRec = (rec: GroomRec) => {
+    setGroomId(rec.id);
+    setPlan(rec.plan);
+    setDone(rec.done);
+    setStepIdx(Math.min(Math.max(0, rec.stepIdx), rec.plan.length - 1));
+    setSelStep(0);
+    setBreed(rec.breed || rec.dog.breed);
+    setDog(rec.dog);
+  };
+
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('gb_state_v1');
+      let list: GroomRec[] = [];
+      const raw = localStorage.getItem('gb_grooms_v1');
       if (raw) {
-        const s = JSON.parse(raw) as {
-          plan?: GroomStep[]; done?: boolean[]; stepIdx?: number; breed?: string; dog?: Intake | null; savedAt?: number;
-        };
-        if (Array.isArray(s.plan) && s.plan.length > 0 && Array.isArray(s.done) && s.done.length === s.plan.length) {
-          setPlan(s.plan);
-          setDone(s.done);
-          setStepIdx(Math.min(Math.max(0, s.stepIdx ?? 0), s.plan.length - 1));
-          if (typeof s.breed === 'string' && s.breed) setBreed(s.breed);
-          if (s.dog) setDog(s.dog);
-          restoredAt.current = typeof s.savedAt === 'number' ? s.savedAt : null;
-          // Mid-groom AND recent → straight back to the step list. A stale groom
-          // (that dog went home weeks ago) keeps its data but starts at intro.
-          const fresh = typeof s.savedAt === 'number' && Date.now() - s.savedAt < 36 * 60 * 60 * 1000;
-          if (s.dog && !s.done.every(Boolean) && fresh) setScreen('steps');
-        }
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) list = parsed.filter(isGroomRec);
+      }
+      // One-time migration of the old single-groom key into the list.
+      const old = localStorage.getItem('gb_state_v1');
+      if (old) {
+        try {
+          const s = JSON.parse(old) as { plan?: GroomStep[]; done?: boolean[]; stepIdx?: number; breed?: string; dog?: Intake | null; savedAt?: number };
+          if (s?.dog && Array.isArray(s.plan) && s.plan.length > 0 && Array.isArray(s.done) && s.done.length === s.plan.length) {
+            list.push({ id: newGroomId(), dog: s.dog, breed: s.breed || s.dog.breed, plan: s.plan, done: s.done, stepIdx: s.stepIdx ?? 0, savedAt: s.savedAt ?? Date.now() });
+          }
+        } catch { /* unreadable old state: drop it */ }
+        localStorage.removeItem('gb_state_v1');
+      }
+      list.sort((a, b) => b.savedAt - a.savedAt);
+      list = list.slice(0, MAX_GROOMS);
+      setGrooms(list);
+      localStorage.setItem('gb_grooms_v1', JSON.stringify(list));
+      // Auto-resume: the most recent groom, if unfinished and recent, drops the
+      // student straight back on its step list. Older grooms wait on Home.
+      const latest = list[0];
+      if (latest && !latest.done.every(Boolean) && Date.now() - latest.savedAt < 36 * 60 * 60 * 1000) {
+        loadRec(latest);
+        restoredAt.current = latest.savedAt;
+        setScreen('steps');
       }
     } catch { /* corrupted or blocked storage: just start fresh */ }
     hydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Upsert the working state into its groom record on every change.
   useEffect(() => {
-    if (!hydrated.current) return; // never clobber storage before the restore ran
-    try {
-      const settling = Date.now() - mountedAt.current < 4000;
-      const savedAt = settling && restoredAt.current != null ? restoredAt.current : Date.now();
-      localStorage.setItem('gb_state_v1', JSON.stringify({ plan, done, stepIdx, breed, dog, savedAt }));
-    } catch { /* storage full/blocked — nothing to do */ }
-  }, [plan, done, stepIdx, breed, dog]);
+    if (!hydrated.current || !groomId || !dog || plan.length === 0) return;
+    const settling = Date.now() - mountedAt.current < 4000;
+    const savedAt = settling && restoredAt.current != null ? restoredAt.current : Date.now();
+    setGrooms((prev) => {
+      const rec: GroomRec = { id: groomId, dog, breed, plan, done, stepIdx, savedAt };
+      const next = [rec, ...prev.filter((g) => g.id !== groomId)].slice(0, MAX_GROOMS);
+      try { localStorage.setItem('gb_grooms_v1', JSON.stringify(next)); } catch { /* storage full/blocked */ }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, done, stepIdx, breed, dog, groomId]);
+
+  const resumeGroom = (id: string) => {
+    const rec = grooms.find((g) => g.id === id);
+    if (!rec) return;
+    loadRec(rec);
+    setScreen('steps');
+    logEvent('groom_resumed', { breed: rec.breed, doneCount: rec.done.filter(Boolean).length, steps: rec.plan.length });
+  };
+  const removeGroom = (id: string) => {
+    setGrooms((prev) => {
+      const next = prev.filter((g) => g.id !== id);
+      try { localStorage.setItem('gb_grooms_v1', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    if (id === groomId) {
+      setGroomId('');
+      setDog(null);
+      setPlan(GROOM_STEPS);
+      setDone(Array(GROOM_STEPS.length).fill(false));
+      setStepIdx(0);
+    }
+  };
 
   // Deep-link to a screen via ?s=home|steps|detail|quick|progress
   // (handy for demos and screenshots). Runs after mount to avoid hydration drift.
@@ -189,6 +285,7 @@ export default function BuddyApp() {
   const buildPlan = async (intake: Intake) => {
     setPlanLoading(true);
     setPlanError('');
+    setGroomId(''); // detach from any previous groom so the save effect can't cross-write it
     setBreed(intake.breed);
     setDog(intake);
     const genericMsg = "Couldn't build the plan just now. Check your connection and tap again.";
@@ -232,7 +329,9 @@ export default function BuddyApp() {
         if (steps.length > shown) {
           setPlan(steps);
           if (shown === 0) {
-            // First step landed: reset progress and go. The list grows in place.
+            // First step landed: this is now a real saved groom. Reset progress
+            // and go; the list grows in place.
+            setGroomId(newGroomId());
             setDone(Array(steps.length).fill(false));
             setStepIdx(0);
             setSelStep(0);
@@ -291,13 +390,13 @@ export default function BuddyApp() {
       {/* status-bar notch breathing room is built into each screen's top padding */}
       {screen === 'intro' && <Intro letsGroom={goHome} />}
       {screen === 'home' && (
-        <Home goDen={goDen} startGroom={startGroom} setQuickMode={setQuickMode} />
+        <Home goDen={goDen} startGroom={startGroom} setQuickMode={setQuickMode} grooms={grooms} resumeGroom={resumeGroom} removeGroom={removeGroom} />
       )}
       {screen === 'setup' && (
         <Setup back={goHome} onBuild={buildPlan} loading={planLoading} error={planError} />
       )}
       {screen === 'steps' && (
-        <Steps breed={breed} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} streaming={planStreaming} goHome={goHome} openDetail={openDetail} setQuickMode={setQuickMode} />
+        <Steps breed={breed} styleLabel={dog?.style ?? ''} steps={plan} doneCount={doneCount} done={done} stepIdx={stepIdx} streaming={planStreaming} chatStarted={groomChatStarted} goHome={goHome} openDetail={openDetail} onAsk={askFromSteps} openChat={() => setGroomChatOpen(true)} />
       )}
       {screen === 'detail' && (
         <Detail step={plan[selStep] || plan[0]} i={selStep} total={plan.length} breed={breed} dog={dog} backToList={backToList} gotItNext={gotItNext} />
@@ -306,6 +405,36 @@ export default function BuddyApp() {
         <Quick goHome={goHome} triggerSafety={triggerSafety} breed={breed} />
       )}
       {screen === 'progress' && <Den backFromDen={backFromDen} photos={photos} openSurvey={() => setShowSurvey(true)} />}
+
+      {/* groom chat sheet: mounted from first question until the groom changes,
+          hidden (not unmounted) when minimized so the thread survives */}
+      {groomChatStarted && (
+        <div
+          onClick={() => setGroomChatOpen(false)}
+          style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(43,33,26,.45)', display: screen === 'steps' && groomChatOpen ? 'flex' : 'none', flexDirection: 'column', justifyContent: 'flex-end' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--cream)', borderTop: BORDER3, borderRadius: '28px 28px 0 0', height: '84%', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'gbSlideUp .3s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px 8px' }}>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16, color: INK }}>Buddy, about this groom</div>
+              <button onClick={() => setGroomChatOpen(false)} aria-label="Minimize chat" style={{ border: BORDER2, background: '#fff', borderRadius: 12, width: 34, height: 30, cursor: 'pointer', fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, lineHeight: 1, padding: 0 }}>˅</button>
+            </div>
+            <ChatPanel
+              key={groomId || 'nogroom'}
+              context={`The student is mid guided groom on ${dog ? `a ${dog.breed}, coat: ${dog.coat}, going for ${dog.style}` : `a ${breed}`}. The plan: ${plan.map((s, i) => `${i + 1}. ${s.t}${done[i] ? ' (done)' : ''}`).join('; ')}. They are on step ${stepIdx + 1}. They may ask about ANY step; answer with the school's method for THIS dog. They may send a photo of where they're at.`}
+              intro={<span>Ask me about any step of this groom, or snap a pic with the ➕ and I&apos;ll take a look.</span>}
+              ask={groomAsk}
+              onAskConsumed={() => setGroomAsk(null)}
+              chips={({ prefill }) => (
+                <>
+                  <QuickChip label="Is this okay?" onClick={() => prefill('Is this okay? ')} />
+                  <QuickChip label="How do I…" onClick={() => prefill('How do I ')} />
+                  <QuickChip label="Show me a reference" onClick={() => prefill('Show me a reference photo of ')} />
+                </>
+              )}
+            />
+          </div>
+        </div>
+      )}
 
       {/* persistent, out-of-the-way feedback nib (sits in the empty status-bar strip) */}
       {!showFeedback && !showSurvey && !showSafety && (
@@ -501,7 +630,7 @@ function Intro({ letsGroom }: { letsGroom: () => void }) {
 // ============================================================
 // SCREEN 2 — Home / routing: "what are we doing today?"
 // ============================================================
-function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGroom: () => void; setQuickMode: () => void }) {
+function Home({ goDen, startGroom, setQuickMode, grooms, resumeGroom, removeGroom }: { goDen: () => void; startGroom: () => void; setQuickMode: () => void; grooms: GroomRec[]; resumeGroom: (id: string) => void; removeGroom: (id: string) => void }) {
   return (
     <div className="scr" style={{ padding: '0 18px' }}>
       {/* topbar */}
@@ -514,25 +643,66 @@ function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGro
         </div>
       </div>
 
-      <div style={{ padding: '18px 0 6px' }}>
-        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>What are we doing<br />today?</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one. I&apos;ll take it from there.</div>
-      </div>
+      {grooms.length === 0 ? (
+        <>
+          <div style={{ padding: '18px 0 6px' }}>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>What are we doing<br />today?</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Pick one. I&apos;ll take it from there.</div>
+          </div>
 
-      {/* two big choices */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
-        <button onClick={startGroom} style={{ textAlign: 'left', background: 'var(--primary)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
-          <div style={{ fontSize: 30 }}>🛁</div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, marginTop: 8, lineHeight: 1.1 }}>Full groom, start to finish</div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: '#4A3C30', marginTop: 4, lineHeight: 1.35 }}>Tell me the dog and I&apos;ll build a step-by-step plan just for them.</div>
-        </button>
-        <button onClick={setQuickMode} style={{ textAlign: 'left', background: 'var(--coral)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
-          <div style={{ fontSize: 30 }}>💬</div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: '#fff', marginTop: 8, lineHeight: 1.1 }}>Quick question about one spot</div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,.92)', marginTop: 4, lineHeight: 1.35 }}>Stuck on one thing? Ask me or send a photo and I&apos;ll coach you.</div>
-        </button>
-      </div>
-      <div style={{ flex: 1 }} />
+          {/* two big choices */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
+            <button onClick={startGroom} style={{ textAlign: 'left', background: 'var(--primary)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
+              <div style={{ fontSize: 30 }}>🛁</div>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, marginTop: 8, lineHeight: 1.1 }}>Full groom, start to finish</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#4A3C30', marginTop: 4, lineHeight: 1.35 }}>Tell me the dog and I&apos;ll build a step-by-step plan just for them.</div>
+            </button>
+            <button onClick={setQuickMode} style={{ textAlign: 'left', background: 'var(--coral)', border: BORDER, borderRadius: 20, padding: 18, boxShadow: HARD, cursor: 'pointer' }}>
+              <div style={{ fontSize: 30 }}>💬</div>
+              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: '#fff', marginTop: 8, lineHeight: 1.1 }}>Quick question about one spot</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,.92)', marginTop: 4, lineHeight: 1.35 }}>Stuck on one thing? Ask me or send a photo and I&apos;ll coach you.</div>
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ padding: '18px 0 6px' }}>
+            <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 26, color: INK, lineHeight: 1.1 }}>Your grooms</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', marginTop: 5 }}>Tap one to jump back in.</div>
+          </div>
+          <div className="gbsc" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12, overflowY: 'auto', flex: 1, minHeight: 0, paddingBottom: 6 }}>
+            {grooms.map((g) => {
+              const doneN = g.done.filter(Boolean).length;
+              const complete = doneN === g.plan.length;
+              return (
+                <div key={g.id} onClick={() => resumeGroom(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: complete ? '#fff' : 'var(--primary-soft)', border: complete ? BORDER : BORDER3, borderRadius: 16, padding: '12px 13px', boxShadow: complete ? 'none' : HARD2, cursor: 'pointer', opacity: complete ? 0.75 : 1 }}>
+                  <div style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: complete ? 'var(--green)' : 'var(--primary)', border: BORDER2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>
+                    {complete ? '✓' : '🐶'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15.5, color: INK, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.breed}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {complete ? `Done · ${g.dog.style}` : `Step ${Math.min(doneN + 1, g.plan.length)} of ${g.plan.length} · ${g.dog.style}`}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeGroom(g.id); }}
+                    aria-label="Remove groom"
+                    style={{ flex: 'none', border: 'none', background: 'transparent', fontWeight: 900, fontSize: 16, color: 'var(--muted-2)', cursor: 'pointer', lineHeight: 1, padding: 6 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: 10, padding: '12px 0 4px' }}>
+            <button onClick={startGroom} style={{ flex: 1, background: 'var(--primary)', border: BORDER, borderRadius: 16, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: INK, boxShadow: HARD2, cursor: 'pointer' }}>🛁 New groom</button>
+            <button onClick={setQuickMode} style={{ flex: 1, background: 'var(--coral)', border: BORDER, borderRadius: 16, padding: 13, fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: '#fff', boxShadow: HARD2, cursor: 'pointer' }}>💬 Quick question</button>
+          </div>
+        </>
+      )}
+      {grooms.length === 0 && <div style={{ flex: 1 }} />}
     </div>
   );
 }
@@ -541,23 +711,45 @@ function Home({ goDen, startGroom, setQuickMode }: { goDen: () => void; startGro
 // SCREEN 2b — Guided intake: breed + coat + style -> build the plan
 // ============================================================
 const BREEDS = ['Goldendoodle', 'Labradoodle', 'Poodle', 'Golden Retriever', 'Shih Tzu', 'Yorkie', 'Maltese', 'Bichon', 'Schnauzer', 'Cocker Spaniel', 'Doodle mix'];
-// Coat = matting level (what actually changes the plan + safety). A bath is
-// assumed for every groom, so it's not a choice here.
-const COATS = ['No mats, smooth', 'A few tangles', 'Matted in spots', 'Matted to the skin'];
-const STYLES = ['Short & easy', 'Medium teddy', 'Longer & fluffy', 'Breed-standard'];
 const OTHER = '__other';
 
+// Progressive intake: breed first, then the questions that make sense for THAT
+// dog appear as you answer (a Golden gets a shedding question and a service
+// menu; a doodle gets the matting scale and clip styles; see data/breed-intake).
+// Unknown mixes: typed text resolves via a synonym table, else a coat-type
+// question stands in for breed, since coat drives the groom anyway.
 function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (i: Intake) => void; loading: boolean; error: string }) {
   const [breed, setBreed] = useState('');
   const [breedOther, setBreedOther] = useState('');
+  const [coatType, setCoatType] = useState(''); // unknown-mix path only
   const [coat, setCoat] = useState('');
   const [coatOther, setCoatOther] = useState('');
   const [style, setStyle] = useState('');
   const [styleOther, setStyleOther] = useState('');
-  const finalBreed = breed === OTHER ? breedOther.trim() : breed;
+
+  // Which question set is live right now?
+  const typedSet = breed === OTHER ? resolveTypedBreed(breedOther) : null;
+  const set: IntakeSet | null =
+    breed && breed !== OTHER
+      ? BREED_INTAKE[breed] ?? null
+      : breed === OTHER
+        ? typedSet ?? COAT_TYPES.find((c) => c.label === coatType)?.set ?? null
+        : null;
+
+  const resetAnswers = () => { setCoat(''); setCoatOther(''); setStyle(''); setStyleOther(''); };
+  const pickBreed = (b: string) => { setBreed(b); setCoatType(''); resetAnswers(); };
+  const typeBreed = (v: string) => { setBreedOther(v); resetAnswers(); }; // typing can swap the set
+  const pickCoatType = (l: string) => { setCoatType(l); resetAnswers(); };
+
+  const finalBreed =
+    breed === OTHER
+      ? breedOther.trim() || (coatType ? `Mixed breed with a ${coatType.toLowerCase()} coat` : '')
+      : breed;
   const finalCoat = coat === OTHER ? coatOther.trim() : coat;
+  // For the coat-type path, carry the type into the plan intake too.
+  const coatForPlan = breed === OTHER && coatType && !typedSet && finalCoat ? `${coatType}; ${finalCoat}` : finalCoat;
   const finalStyle = style === OTHER ? styleOther.trim() : style;
-  const ready = !!finalBreed && !!finalCoat && !!finalStyle && !loading;
+  const ready = !!finalBreed && !!set && !!finalCoat && !!finalStyle && !loading;
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
     <div key={label} onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
@@ -602,20 +794,29 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
       </div>
       <div className="gbsc scroll" style={{ padding: '4px 18px 18px' }}>
         <Section title="Breed">
-          {BREEDS.map((b) => chip(b, breed === b, () => setBreed(b)))}
-          {chip('Other / mixed', breed === OTHER, () => setBreed(OTHER))}
+          {BREEDS.map((b) => chip(b, breed === b, () => pickBreed(b)))}
+          {chip('Other / mixed', breed === OTHER, () => pickBreed(OTHER))}
         </Section>
-        {breed === OTHER && otherInput(breedOther, setBreedOther, 'e.g. Cavapoo, mixed…')}
-        <Section title="How's the coat?">
-          {COATS.map((c) => chip(c, coat === c, () => setCoat(c)))}
-          {chip('Other', coat === OTHER, () => setCoat(OTHER))}
-        </Section>
-        {coat === OTHER && otherInput(coatOther, setCoatOther, 'e.g. greasy, double-coat, shedding a lot…')}
-        <Section title="The look they&apos;re going for">
-          {STYLES.map((s) => chip(s, style === s, () => setStyle(s)))}
-          {chip('Other', style === OTHER, () => setStyle(OTHER))}
-        </Section>
-        {style === OTHER && otherInput(styleOther, setStyleOther, 'e.g. lion cut, lamb, kennel cut…')}
+        {breed === OTHER && otherInput(breedOther, typeBreed, 'What mix, if you know? e.g. Cavapoo…')}
+        {breed === OTHER && !typedSet && (
+          <Section title={COAT_TYPE_QUESTION}>
+            {COAT_TYPES.map((c) => chip(c.label, coatType === c.label, () => pickCoatType(c.label)))}
+          </Section>
+        )}
+        {set && (
+          <Section title={set.coatTitle}>
+            {set.coats.map((c) => chip(c, coat === c, () => setCoat(c)))}
+            {chip('Other', coat === OTHER, () => setCoat(OTHER))}
+          </Section>
+        )}
+        {set && coat === OTHER && otherInput(coatOther, setCoatOther, 'e.g. greasy, shedding a lot…')}
+        {set && !!finalCoat && (
+          <Section title={set.styleTitle}>
+            {set.styles.map((s) => chip(s, style === s, () => setStyle(s)))}
+            {chip('Other', style === OTHER, () => setStyle(OTHER))}
+          </Section>
+        )}
+        {set && !!finalCoat && style === OTHER && otherInput(styleOther, setStyleOther, 'e.g. lion cut, lamb, kennel cut…')}
         {!!error && (
           <div style={{ marginTop: 18, background: 'var(--red-tint)', border: BORDER, borderRadius: 14, padding: 12, fontSize: 13, fontWeight: 700, color: 'var(--red-text)' }}>
             {error}
@@ -624,7 +825,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
       </div>
       <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff' }}>
         <button
-          onClick={() => ready && onBuild({ breed: finalBreed, coat: finalCoat, style: finalStyle })}
+          onClick={() => ready && onBuild({ breed: finalBreed, coat: coatForPlan, style: finalStyle })}
           disabled={!ready}
           style={{ width: '100%', background: ready ? 'var(--primary)' : 'var(--neutral-fill)', border: BORDER, borderRadius: 16, padding: 16, fontFamily: FFD, fontWeight: 800, fontSize: 17, color: ready ? INK : 'var(--muted-2)', boxShadow: ready ? HARD : 'none', cursor: ready ? 'pointer' : 'default' }}
         >
@@ -638,7 +839,23 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
 // ============================================================
 // SCREEN 3 — Steps list
 // ============================================================
-function Steps({ breed, steps, doneCount, done, stepIdx, streaming, goHome, openDetail, setQuickMode }: { breed: string; steps: GroomStep[]; doneCount: number; done: boolean[]; stepIdx: number; streaming: boolean; goHome: () => void; openDetail: (i: number) => void; setQuickMode: () => void }) {
+function Steps({ breed, styleLabel, steps, doneCount, done, stepIdx, streaming, chatStarted, goHome, openDetail, onAsk, openChat }: { breed: string; styleLabel: string; steps: GroomStep[]; doneCount: number; done: boolean[]; stepIdx: number; streaming: boolean; chatStarted: boolean; goHome: () => void; openDetail: (i: number) => void; onAsk: (text: string) => void; openChat: () => void }) {
+  // The ask bar: type here, the answer opens as a sheet OVER the steps.
+  const [ask, setAsk] = useState('');
+  const askRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = askRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 90)}px`;
+    el.style.overflowY = el.scrollHeight > 90 ? 'auto' : 'hidden';
+  }, [ask]);
+  const sendAsk = () => {
+    const t = ask.trim();
+    if (!t) return;
+    onAsk(t);
+    setAsk('');
+  };
   return (
     <div className="scr">
       <div style={{ padding: '38px 18px 12px', background: 'var(--primary)', borderBottom: BORDER }}>
@@ -647,7 +864,7 @@ function Steps({ breed, steps, doneCount, done, stepIdx, streaming, goHome, open
             <ChevronL size={22} onClick={goHome} />
             <div>
               <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 19, color: INK, lineHeight: 1 }}>{breed}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)' }}>Full groom · teddy-bear face</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-deep)' }}>{styleLabel ? `Full groom · ${styleLabel}` : 'Full groom'}</div>
             </div>
           </div>
           <div style={{ background: INK, color: 'var(--primary)', fontFamily: FFD, fontWeight: 800, fontSize: 14, padding: '6px 11px', borderRadius: 12 }}>{doneCount}/{steps.length}</div>
@@ -697,8 +914,32 @@ function Steps({ breed, steps, doneCount, done, stepIdx, streaming, goHome, open
           </div>
         )}
       </div>
-      <div style={{ padding: '13px 18px 22px', borderTop: BORDER, background: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div onClick={setQuickMode} style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 13, fontWeight: 700, fontSize: 13, color: 'var(--muted-2)', cursor: 'pointer' }}>Ask about any step…</div>
+      <div style={{ padding: '10px 18px 22px', borderTop: BORDER, background: '#fff' }}>
+        {chatStarted && (
+          <div onClick={openChat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8, background: 'var(--primary-soft)', border: BORDER2, borderRadius: 999, padding: '7px 12px', fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: INK, cursor: 'pointer' }}>
+            <span style={{ fontSize: 14 }}>˄</span> Your chat with Buddy is here
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <textarea
+            ref={askRef}
+            className="gbin"
+            value={ask}
+            rows={1}
+            onChange={(e) => setAsk(e.target.value)}
+            placeholder="Ask about any step…"
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAsk(); } }}
+            style={{ flex: 1, background: 'var(--neutral-fill)', border: BORDER, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13.5, color: INK, fontFamily: FFB, outline: 'none', resize: 'none', overflowY: 'hidden', lineHeight: 1.4, maxHeight: 90 }}
+          />
+          <button
+            onClick={sendAsk}
+            disabled={!ask.trim()}
+            aria-label="Ask"
+            style={{ flex: 'none', width: 44, height: 44, borderRadius: '50%', background: 'var(--coral)', border: BORDER3, boxShadow: HARD2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: ask.trim() ? 'pointer' : 'default', opacity: ask.trim() ? 1 : 0.4 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5l7 7-7 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -839,6 +1080,10 @@ type ChatPanelProps = {
   // Embedded inside another screen (step detail): bounded thread, tighter chrome.
   compact?: boolean;
   chips?: (h: { deliver: (text: string) => void; prefill: (text: string) => void; busy: boolean }) => React.ReactNode;
+  // Externally injected question (the steps-screen bottom bar feeds the groom
+  // chat sheet this way). Bump `n` for each ask; consumed exactly once.
+  ask?: { text: string; n: number } | null;
+  onAskConsumed?: () => void;
 };
 
 function QuickChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'red' }) {
@@ -955,7 +1200,7 @@ function QuestionCards({
   );
 }
 
-function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
+function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed }: ChatPanelProps) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -1021,6 +1266,14 @@ function ChatPanel({ context, intro, compact, chips }: ChatPanelProps) {
   }
   const send = () => { if (!busy) deliver(input.trim()); };
   const prefill = (s: string) => { setInput(s); setTimeout(() => inputRef.current?.focus(), 0); };
+
+  // A question handed in from outside (steps bar → groom chat sheet).
+  useEffect(() => {
+    if (!ask?.text) return;
+    deliver(ask.text);
+    onAskConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask?.n]);
 
   const hasInput = input.trim().length > 0 || !!pending;
 
