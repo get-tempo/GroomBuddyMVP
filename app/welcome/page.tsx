@@ -1,170 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Fraunces } from 'next/font/google';
-import { ICONS, PhoneFrame } from '../marketing-ui';
+import { ICONS } from '../marketing-ui';
+import { SERIF, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo } from '../editorial';
 import AnalyticsInit from '../analytics-init';
 
-// Marketing landing page, "warm clay" editorial direction (askperi.ai-inspired
-// structure: tonal color blocks, serif display, chat pill straddling the hero
-// seam, collapsible FAQ). Sketch illustrations are intentionally absent until
-// the AI-generated ink-sketch assets land; the hero is full-width deep until
-// then (it goes back to a split with the artwork block after).
-// Copy rule: everything on this page is for the END USER; how-we-built-it
-// details stay out. No em dashes, no hype, no fabricated numbers.
-
-const fraunces = Fraunces({ subsets: ['latin'], axes: ['opsz', 'SOFT', 'WONK'] });
-// Hard-pin the variation axes: Fraunces' auto optical sizing swaps in
-// display-cut glyphs (the curly descender 'f') at large sizes and
-// font-optical-sizing alone didn't stop it. Julian vetoed the weird f twice.
-const SERIF: React.CSSProperties = {
-  fontFamily: fraunces.style.fontFamily,
-  fontOpticalSizing: 'none',
-  fontVariationSettings: "'opsz' 14, 'SOFT' 0, 'WONK' 0",
-};
+// Marketing landing page for students and pros. Editorial design system lives
+// in app/editorial.tsx (shared with /diy). Copy rule: everything here is for
+// the END USER; how-we-built-it details stay out. No em dashes, no hype, no
+// fabricated numbers or testimonials.
 
 export const metadata: Metadata = {
   title: 'Grooming Buddy — an AI coach for grooming students and new groomers',
   description:
     'Buddy builds a step-by-step plan for the exact dog on your table, answers questions mid-groom, and gives straight feedback on your work. Free while in pilot.',
 };
-
-// palette: back to the app's own identity (Buddy yellow + espresso + cream),
-// applied with the same tonal rule (deep text on bright blocks, light text on
-// deep blocks). Julian 7/23: clay read "too professional."
-const CREAM = '#fff8ee';
-const INK = '#2b211a';
-const CLAY = '#ffc32b';       // bright block (Buddy yellow)
-const DEEP = '#2b211a';       // deep block / text on yellow
-const LIGHT = '#ffefc6';      // light text on deep
-const TINT = '#f4ece0';       // subtle section tint
-const MUT = '#6b5d4e';        // muted body on cream
-const GOLD = '#9a7b3f';       // serif accents on cream (yellow itself is too faint)
-
-function ChatPill() {
-  return (
-    <Link href="/" aria-label="Open Grooming Buddy and ask a question" style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 999, padding: '15px 20px', boxShadow: `0 4px 0 ${DEEP}`, textDecoration: 'none', maxWidth: 620, width: '100%' }}>
-      <span style={{ flex: 1, fontSize: 'clamp(14px, 2.2vw, 17px)', fontWeight: 600, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        Hi, I&apos;m Buddy. Stuck mid-groom? Just ask.
-        <span className="gbCaret" style={{ background: INK }} />
-      </span>
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={MUT} strokeWidth="2.4" strokeLinecap="round" /></svg>
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" stroke={MUT} strokeWidth="2.2" fill="none" /><path d="M5 11a7 7 0 0014 0M12 18v3" stroke={MUT} strokeWidth="2.2" strokeLinecap="round" fill="none" /></svg>
-      <span style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path d="M12 19V6M6 12l6-6 6 6" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
-      </span>
-    </Link>
-  );
-}
-
-// Animated app demo: a real niche question, and Buddy's REAL answer (queried
-// from the live system, lightly condensed) plus the actual video-bank card the
-// app serves for ears. Pure CSS loop, see gbDemoQ/T/A in globals.css.
-const FFD = 'var(--font-display)';
-const miniChip = (label: string, tapped?: boolean) => (
-  <div key={label} className={tapped ? 'gbTapChip' : undefined} style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 999, padding: '7px 6px', fontFamily: FFD, fontWeight: 800, fontSize: 11.5, color: INK, textAlign: 'center' }}>{label}</div>
-);
-const videoCard = (
-  <div style={{ border: `2px solid ${INK}`, borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-    <div style={{ background: INK, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ width: 30, height: 30, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l12-7-12-7z" fill={INK} /></svg>
-      </span>
-    </div>
-    <div style={{ padding: '6px 9px', fontSize: 10.5, fontWeight: 700, color: MUT, lineHeight: 1.35 }}>
-      How to scissor your dog&apos;s ears · Grooming By Rudy · plays from 0:23
-    </div>
-  </div>
-);
-
-// The real app flow, replicated: intake -> building -> plan -> step detail
-// (with the real video-bank card) -> asking about the step. 26s CSS loop.
-function ChatDemo() {
-  const planRow = (n: number, t: string, tapped?: boolean) => (
-    <div key={n} className={tapped ? 'gbTapRow' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: `2px solid ${INK}`, borderRadius: 12, padding: '7px 9px' }}>
-      <span style={{ flex: 'none', width: 20, height: 20, borderRadius: '50%', background: 'var(--primary)', border: `2px solid ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FFD, fontWeight: 800, fontSize: 10.5 }}>{n}</span>
-      <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 11.5, color: INK, flex: 1 }}>{t}</span>
-      <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
-    </div>
-  );
-  return (
-    <PhoneFrame tall>
-      <div style={{ position: 'relative', flex: 1 }}>
-        {/* 1 · intake */}
-        <div className="gbScr gbScr1">
-          <div style={{ background: 'var(--primary)', border: `2px solid ${INK}`, borderRadius: 12, padding: '8px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 13, color: INK }}>Who&apos;s on the table?</div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK }}>Breed</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-            {miniChip('Goldendoodle', true)}
-            {miniChip('Poodle')}
-            {miniChip('Shih Tzu')}
-            {miniChip('Maltese')}
-            {miniChip('Schnauzer')}
-            {miniChip('Other / mixed')}
-          </div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK, marginTop: 4 }}>How&apos;s the coat?</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-            {miniChip('A few tangles')}
-            {miniChip('Brushed out')}
-          </div>
-        </div>
-        {/* 2 · building the plan */}
-        <div className="gbScr gbScr2" style={{ alignItems: 'center', justifyContent: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/art/Smileydogfunny.jpg" alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${INK}` }} />
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK }}>Building Willow&apos;s plan…</div>
-          <div style={{ display: 'flex', gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .2s' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .4s' }} />
-          </div>
-        </div>
-        {/* 3 · the plan, tapping a step */}
-        <div className="gbScr gbScr3">
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: MUT }}>Willow · Goldendoodle · medium teddy</div>
-          {planRow(1, 'Nails, pads, and sanitary')}
-          {planRow(2, 'Bath and blow-dry')}
-          {planRow(3, 'Full brush-out and de-mat')}
-          {planRow(4, 'Clipper the body')}
-          {planRow(5, 'Tidy and clean the ears', true)}
-          {planRow(6, 'Scissor the face')}
-        </div>
-        {/* 4 · step detail with the video */}
-        <div className="gbScr gbScr4">
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: INK }}>Tidy and clean the ears</div>
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 11, color: MUT, marginTop: -5 }}>Step 5 of 9</div>
-          <div style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 12, padding: '8px 10px', fontSize: 11.5, fontWeight: 600, lineHeight: 1.45, color: INK }}>
-            1. Pluck loose inner-ear hair, a little at a time.<br />
-            2. Wipe with ear cleaner on a cotton pad.<br />
-            3. Scissor the edges to follow the ear&apos;s shape.
-          </div>
-          <div style={{ background: 'var(--primary-soft)', border: `2px solid ${INK}`, borderRadius: 10, padding: '6px 9px', fontSize: 10.5, fontWeight: 700, color: INK }}>
-            Pro tip: work with the ear resting flat in your palm, never mid-air.
-          </div>
-          {videoCard}
-        </div>
-        {/* 5 · asking about the step */}
-        <div className="gbScr gbScr5">
-          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: MUT }}>Tidy and clean the ears · Ask Buddy</div>
-          <div className="gbS5Q" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ maxWidth: '88%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 12, fontWeight: 700, color: INK }}>
-              How do I tidy the edges without nicking the leather?
-            </div>
-          </div>
-          <div className="gbS5A" style={{ maxWidth: '94%', background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 12, fontWeight: 600, lineHeight: 1.5, color: INK }}>
-            Comb the ear hair straight down and hold the ear so you can <b>feel</b>
-            {' '}where the leather ends, that&apos;s your safety line. Thinning
-            shears, parallel to the edge, small bites from base to tip, angled
-            away from the leather so any slip goes into air, not skin.
-          </div>
-        </div>
-      </div>
-    </PhoneFrame>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return <a href={href} style={{ color: DEEP, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>{children}</a>;
-}
 
 const FAQS = [
   { q: 'Is it really free?', a: 'Yes, everything, while we are in pilot. When paid plans arrive (around $19 a month), early users get a founding rate. No card, no signup today.' },
@@ -180,25 +29,14 @@ export default function Welcome() {
     <main style={{ background: CREAM, color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
       <AnalyticsInit />
 
-      {/* nav: pale butter (the page cream reads as plain white on screen),
-          matching the promise band so the dark hero sits between two creams */}
-      <nav style={{ background: LIGHT, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/art/logo-buddy.png" alt="" style={{ width: 40, height: 'auto', display: 'block' }} />
-          <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
-          <NavLink href="#how">How it works</NavLink>
-          <NavLink href="#faq">FAQ</NavLink>
-          <NavLink href="#pricing">Pricing</NavLink>
-          <NavLink href="#schools">For schools</NavLink>
-          <Link href="/" style={{ background: CLAY, color: INK, borderRadius: 999, padding: '10px 20px', fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: `0 2px 0 ${INK}` }}>Open Buddy</Link>
-        </div>
-      </nav>
+      <Nav links={[
+        { href: '#how', label: 'How it works' },
+        { href: '#faq', label: 'FAQ' },
+        { href: '#pricing', label: 'Pricing' },
+        { href: '#schools', label: 'For schools' },
+      ]} />
 
-      {/* hero: compact deep block so the next band peeks above the fold;
-          chat pill on the bottom seam */}
+      {/* hero: compact deep block so the next band peeks above the fold */}
       <header style={{ position: 'relative' }}>
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
@@ -216,7 +54,7 @@ export default function Welcome() {
         </div>
       </header>
 
-      {/* promise band: pale butter, the golden roams free on it Peri-style */}
+      {/* promise band: pale butter, the golden roams free */}
       <section style={{ background: LIGHT, color: DEEP, padding: '84px 26px 0' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
           <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
@@ -242,7 +80,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* who is Buddy for: serif question + list left, editorial right */}
+      {/* who is Buddy for */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px', display: 'flex', flexWrap: 'wrap', gap: '28px 70px', alignItems: 'flex-start' }}>
         <div style={{ flex: '1 1 300px', maxWidth: 420 }}>
           <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(30px, 3.8vw, 42px)', color: GOLD, margin: '0 0 18px' }}>Who is Buddy for?</h2>
@@ -268,7 +106,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* what Buddy is: four icon columns (trust, user-relevant only) */}
+      {/* what Buddy is: heading + four centered icon columns */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 0' }}>
         <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
           Helping grooming students and new groomers work with confidence.
@@ -281,8 +119,8 @@ export default function Welcome() {
           { i: ICONS.shield, t: 'Safety first, always', d: 'Brush before blades, tiny tips on nails, hot-blade checks, baked into every plan.' },
           { i: ICONS.person, t: 'Knows when you need a human', d: 'Tight matting, a stressed dog, anything medical: stop, get a person. It never replaces an instructor.' },
         ].map(a => (
-          <div key={a.t}>
-            <span aria-hidden style={{ display: 'block', width: 54, height: 54, color: GOLD, marginBottom: 16 }}>{a.i}</span>
+          <div key={a.t} style={{ textAlign: 'center' }}>
+            <span aria-hidden style={{ display: 'block', width: 54, height: 54, color: GOLD, margin: '0 auto 16px' }}>{a.i}</span>
             <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>{a.t}</div>
             <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.6, color: MUT }}>{a.d}</div>
           </div>

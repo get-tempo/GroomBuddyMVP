@@ -75,7 +75,7 @@ export const ICONS = {
     <svg width="100%" height="100%" viewBox="0 0 24 24"><path {...stroke} d="M12 6C10 4.2 7 4 4 4.8V19c3-.8 6-.6 8 1 2-1.6 5-1.8 8-1V4.8C17 4 14 4.2 12 6z" /><path {...stroke} d="M12 6v14" /></svg>
   ),
   paw: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="7" cy="8" r="1.9" /><circle {...stroke} cx="12" cy="6" r="1.9" /><circle {...stroke} cx="17" cy="8" r="1.9" /><path {...stroke} d="M12 11c-3 0-5.5 2.4-5.5 4.7 0 1.6 1.2 2.8 2.8 2.8 1 0 1.8-.4 2.7-.4s1.7.4 2.7.4c1.6 0 2.8-1.2 2.8-2.8C17.5 13.4 15 11 12 11z" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><ellipse {...stroke} cx="6.4" cy="8.6" rx="2.1" ry="2.6" transform="rotate(-18 6.4 8.6)" /><ellipse {...stroke} cx="12" cy="6.6" rx="2.1" ry="2.7" /><ellipse {...stroke} cx="17.6" cy="8.6" rx="2.1" ry="2.6" transform="rotate(18 17.6 8.6)" /><path {...stroke} d="M12 12.2c-3.4 0-6.2 2.5-6.2 5.2 0 1.8 1.4 3.1 3.2 3.1 1.1 0 2-.5 3-.5s1.9.5 3 .5c1.8 0 3.2-1.3 3.2-3.1 0-2.7-2.8-5.2-6.2-5.2z" /></svg>
   ),
   target: (
     <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="12" r="8" /><circle {...stroke} cx="12" cy="12" r="3.5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></svg>
