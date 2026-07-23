@@ -12,10 +12,15 @@ import AnalyticsInit from '../analytics-init';
 // Copy rule: everything on this page is for the END USER; how-we-built-it
 // details stay out. No em dashes, no hype, no fabricated numbers.
 
-const fraunces = Fraunces({ subsets: ['latin'], weight: ['400', '600'] });
-// Pin optical sizing: Fraunces' auto opsz swaps in display-cut glyphs (the
-// curly descender 'f') at large sizes. Julian vetoed the weird f.
-const SERIF: React.CSSProperties = { fontFamily: fraunces.style.fontFamily, fontOpticalSizing: 'none' };
+const fraunces = Fraunces({ subsets: ['latin'], axes: ['opsz', 'SOFT', 'WONK'] });
+// Hard-pin the variation axes: Fraunces' auto optical sizing swaps in
+// display-cut glyphs (the curly descender 'f') at large sizes and
+// font-optical-sizing alone didn't stop it. Julian vetoed the weird f twice.
+const SERIF: React.CSSProperties = {
+  fontFamily: fraunces.style.fontFamily,
+  fontOpticalSizing: 'none',
+  fontVariationSettings: "'opsz' 14, 'SOFT' 0, 'WONK' 0",
+};
 
 export const metadata: Metadata = {
   title: 'Grooming Buddy — an AI coach for grooming students and new groomers',
@@ -178,7 +183,11 @@ export default function Welcome() {
       {/* nav: pale butter (the page cream reads as plain white on screen),
           matching the promise band so the dark hero sits between two creams */}
       <nav style={{ background: LIGHT, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-        <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/art/logo-buddy.png" alt="" style={{ width: 40, height: 'auto', display: 'block' }} />
+          <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
+        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <NavLink href="#how">How it works</NavLink>
           <NavLink href="#faq">FAQ</NavLink>
@@ -241,6 +250,7 @@ export default function Welcome() {
             <li>Grooming students</li>
             <li>New groomers, first two years</li>
             <li>Mobile groomers working solo</li>
+            <li>Working groomers, any year</li>
             <li>Grooming schools</li>
           </ul>
         </div>
@@ -250,7 +260,9 @@ export default function Welcome() {
             next to you. Buddy is for everyone still in that stretch: students
             between instructor check-ins, new groomers building speed and
             confidence, and solo mobile groomers with no senior groomer in the
-            van. It saves the question for the moment it matters, on the dog it
+            van. Or just anyone with a question, because nobody remembers every
+            breed, and even twenty years in, some dogs still send you to the
+            book. It saves the question for the moment it matters, on the dog it
             matters for.
           </p>
           <div style={{ margin: '14px 0 0', color: MUT }}>&mdash;</div>
