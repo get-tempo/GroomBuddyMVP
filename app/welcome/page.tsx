@@ -87,7 +87,7 @@ export default function Welcome() {
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 340px', background: TINT, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '36px 24px 0' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(400px, 88%)', height: 'auto', display: 'block' }} />
+            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(500px, 96%)', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ flex: '1 1 420px', background: DEEP, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 5vw 110px' }}>
             <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(38px, 5.2vw, 62px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 620 }}>
