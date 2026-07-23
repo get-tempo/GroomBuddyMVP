@@ -75,7 +75,7 @@ export const ICONS = {
     <svg width="100%" height="100%" viewBox="0 0 24 24"><path {...stroke} d="M12 6C10 4.2 7 4 4 4.8V19c3-.8 6-.6 8 1 2-1.6 5-1.8 8-1V4.8C17 4 14 4.2 12 6z" /><path {...stroke} d="M12 6v14" /></svg>
   ),
   paw: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24"><ellipse {...stroke} cx="6.4" cy="8.6" rx="2.1" ry="2.6" transform="rotate(-18 6.4 8.6)" /><ellipse {...stroke} cx="12" cy="6.6" rx="2.1" ry="2.7" /><ellipse {...stroke} cx="17.6" cy="8.6" rx="2.1" ry="2.6" transform="rotate(18 17.6 8.6)" /><path {...stroke} d="M12 12.2c-3.4 0-6.2 2.5-6.2 5.2 0 1.8 1.4 3.1 3.2 3.1 1.1 0 2-.5 3-.5s1.9.5 3 .5c1.8 0 3.2-1.3 3.2-3.1 0-2.7-2.8-5.2-6.2-5.2z" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor"><ellipse cx="5" cy="10.6" rx="1.8" ry="2.35" transform="rotate(-25 5 10.6)" /><ellipse cx="9.4" cy="7.1" rx="1.8" ry="2.4" transform="rotate(-8 9.4 7.1)" /><ellipse cx="14.6" cy="7.1" rx="1.8" ry="2.4" transform="rotate(8 14.6 7.1)" /><ellipse cx="19" cy="10.6" rx="1.8" ry="2.35" transform="rotate(25 19 10.6)" /><path d="M12 11.9c-3.1 0-5.7 2.5-5.7 5.2 0 2 1.6 3.5 3.6 3.5.9 0 1.5-.3 2.1-.3s1.2.3 2.1.3c2 0 3.6-1.5 3.6-3.5 0-2.7-2.6-5.2-5.7-5.2z" /></svg>
   ),
   target: (
     <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="12" r="8" /><circle {...stroke} cx="12" cy="12" r="3.5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></svg>
