@@ -42,7 +42,7 @@ export default function Welcome() {
           <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '28px 60px', justifyContent: 'space-between' }}>
             <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
               <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(36px, 4.8vw, 56px)', lineHeight: 1.1, color: LIGHT, margin: 0 }}>
-                A coach in your pocket, mid-groom.
+                A grooming coach in your pocket, mid-groom.
               </h1>
               <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
                 Buddy plans the groom for the exact dog on your table, answers while
