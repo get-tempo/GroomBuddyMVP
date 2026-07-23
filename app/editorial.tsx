@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Fraunces } from 'next/font/google';
-import { PhoneFrame } from './marketing-ui';
+import { PhoneFrame, DOODLES } from './marketing-ui';
 
 // The editorial design system shared by the marketing pages (/welcome, /diy):
 // brand yellow/espresso/cream with the tonal rule (deep text on bright blocks,
@@ -62,6 +62,38 @@ export function ChatPill() {
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path d="M12 19V6M6 12l6-6 6 6" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
       </span>
     </Link>
+  );
+}
+
+// Organic blob with a doodle inside, editorial-recolored (the old sticker
+// zigzag visual, minus the tilt-and-hard-shadow look).
+export function EBlob({ kind, tint = LIGHT, size = 120 }: {
+  kind: keyof typeof DOODLES; tint?: string; size?: number;
+}) {
+  return (
+    <div aria-hidden style={{ width: size, height: size, background: tint, border: `2px solid ${DEEP}`, boxShadow: `0 3px 0 ${DEEP}`, borderRadius: '58% 42% 55% 45% / 45% 55% 45% 55%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+      <span style={{ width: size * 0.5, height: size * 0.5, color: DEEP }}>{DOODLES[kind]}</span>
+    </div>
+  );
+}
+
+// Numbered zigzag step (alternate `flip` per row).
+export function EStepRow({ n, title, doodle, tint, flip, children }: {
+  n: number; title: string; doodle: keyof typeof DOODLES; tint?: string; flip?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 36px', flexDirection: flip ? 'row-reverse' : 'row', justifyContent: 'space-between' }}>
+      <div style={{ flex: '1 1 340px', maxWidth: 620, display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: '50%', background: CLAY, border: `2px solid ${DEEP}`, boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...SERIF, fontWeight: 600, fontSize: 26, color: DEEP }}>
+          {n}
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 6, color: DEEP }}>{title}</div>
+          <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.6, color: MUT }}>{children}</div>
+        </div>
+      </div>
+      <EBlob kind={doodle} tint={tint} />
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ICONS } from '../marketing-ui';
-import { SERIF, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo } from '../editorial';
+import { SERIF, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, EStepRow } from '../editorial';
 import AnalyticsInit from '../analytics-init';
 
 // Landing page for DIY / home groomers, on the shared editorial design system
@@ -59,10 +59,9 @@ export default function Diy() {
               The salon bill keeps coming.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
-              Salon grooms commonly run $60 to $120 a visit, and a doodle needs
-              one every 4 to 8 weeks. Buddy helps you do it yourself: a plan for
-              your exact dog, one step at a time, with a coach to ask the moment
-              you&apos;re unsure.
+              Buddy helps you do it yourself: a plan for your exact dog, one step
+              at a time, with a coach to ask the moment you&apos;re unsure. Built
+              with a real grooming school.
             </p>
             <div style={{ marginTop: 22 }}>
               <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
@@ -73,8 +72,60 @@ export default function Diy() {
         </div>
       </section>
 
+      {/* why you're here: bento, editorial-recolored */}
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px' }}>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px' }}>Why you&apos;re here</h2>
+        <div className="gbBento">
+          <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}` }}>
+            <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(34px, 4.5vw, 46px)', lineHeight: 1, whiteSpace: 'nowrap', color: DEEP }}>
+                $60<span style={{ fontSize: '0.55em' }}> to </span>$120
+              </div>
+              <div style={{ flex: '1 1 240px', fontSize: 14.5, fontWeight: 600, lineHeight: 1.55, color: DEEP, opacity: 0.85 }}>
+                is what a salon visit commonly runs, and a doodle needs one every
+                4 to 8 weeks. Per dog, every year, that is serious money.
+              </div>
+            </div>
+          </div>
+          <div className="gbSpan2" style={{ background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 18, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
+            <span aria-hidden style={{ display: 'block', width: 36, height: 36, marginBottom: 8 }}>
+              <svg viewBox="0 0 40 40" width="100%" height="100%"><rect x="4" y="8" width="32" height="24" rx="4" fill="none" stroke={DEEP} strokeWidth="2.4" /><path d="M17 14v12l10-6-10-6z" fill={DEEP} /></svg>
+            </span>
+            <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>The video is for someone else&apos;s dog</div>
+            <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.55, color: MUT }}>
+              Your dog&apos;s coat, mats, and patience are not the ones in the
+              tutorial. You need answers about the dog in front of you.
+            </div>
+          </div>
+          <div className="gbSpan3" style={{ background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 18, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <span aria-hidden style={{ flex: 'none', width: 30, height: 30, color: GOLD, marginTop: 2 }}>{ICONS.shield}</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>One bad snip ruins your confidence</div>
+                <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.55, color: MUT }}>
+                  Nails, ears, and mats are exactly where owners get scared, and
+                  where guessing actually can hurt your dog. That fear is reasonable.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="gbSpan3" style={{ background: LIGHT, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <span aria-hidden style={{ flex: 'none', width: 30, height: 30, color: DEEP, marginTop: 2 }}>{ICONS.paw}</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>Buddy sits next to the tub</div>
+                <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.55, color: DEEP, opacity: 0.8 }}>
+                  A plan for your exact dog, one step at a time, with a coach to
+                  ask the moment you&apos;re unsure. Built with a real grooming school.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* why trust it: four centered icon columns */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 0' }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 0' }}>
         <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
           A real grooming education, in your pocket.
         </h2>
@@ -94,28 +145,23 @@ export default function Diy() {
         ))}
       </section>
 
-      {/* how it works: steps left, app demo right */}
+      {/* how it works: the zigzag with doodle blobs */}
       <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 60px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 26px' }}>How it works</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '44px 70px', alignItems: 'center' }}>
-          <div style={{ flex: '1 1 380px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 30 }}>
-            {[
-              { n: '1', t: 'Tell Buddy about your dog', d: 'Breed or mix, how matted the coat is, and the look you want. Twenty seconds of taps.' },
-              { n: '2', t: 'Get your dog’s plan', d: 'A full plan in the right order: nails and prep first, bath, brush-out, then the haircut, with the tools and the one thing to watch at each step.' },
-              { n: '3', t: 'Ask whenever you’re unsure', d: 'Every step has a chat. Send a photo mid-groom and Buddy tells you what to fix and whether you have room to keep going.' },
-            ].map(s => (
-              <div key={s.n} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                <div style={{ ...SERIF, fontWeight: 400, fontSize: 46, lineHeight: 1, color: GOLD, flex: 'none', width: 40 }}>{s.n}</div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 18, margin: '0 0 6px', color: DEEP }}>{s.t}</div>
-                  <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.6, color: MUT }}>{s.d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ flex: 'none', margin: '0 auto' }}>
-            <ChatDemo />
-          </div>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 34px' }}>How it works</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+          <EStepRow n={1} title="Tell Buddy about your dog" doodle="paw" tint={LIGHT}>
+            Breed or mix, how matted the coat is, and the look you want. Twenty
+            seconds of taps. Honest answers get honest plans.
+          </EStepRow>
+          <EStepRow n={2} title="Get your dog's plan" doodle="bone" tint={TINT} flip>
+            A full plan in the right order (nails and prep first, bath,
+            brush-out, then the haircut), with the tools and the one thing to
+            watch at each step.
+          </EStepRow>
+          <EStepRow n={3} title="Ask whenever you're unsure" doodle="bubbles" tint={LIGHT}>
+            Every step has a chat. Send a photo mid-groom and Buddy tells you
+            what to fix and whether you have room to keep going.
+          </EStepRow>
         </div>
       </section>
 
