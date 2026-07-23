@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { INK, BORDER, HARD, HARD2, FFD, Pill, Card, CTA, Footer } from '../marketing-ui';
+import { INK, BORDER, HARD2, FFD, Pill, Card, CTA, Footer, PhoneFrame } from '../marketing-ui';
 
 // Landing page for DIY / home groomers (owners grooming their own dog).
 // Copy rules: no em dashes, no hype, no fabricated numbers or testimonials.
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 // The DIY fear that matters most: nails and the quick, on black nails.
 function PhoneDemo() {
   return (
-    <div style={{ width: 320, maxWidth: '92vw', background: 'var(--cream)', border: BORDER, borderRadius: 26, boxShadow: '6px 6px 0 var(--ink)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <PhoneFrame>
       <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-1)' }}>Bella · Goldendoodle · step 1 of 7</div>
       <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: '12px 14px', boxShadow: HARD2 }}>
         <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16 }}>Nails first, before the bath</div>
@@ -36,7 +36,7 @@ function PhoneDemo() {
       <div style={{ maxWidth: '90%', background: '#fff', border: BORDER, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 13, fontWeight: 600, lineHeight: 1.5, boxShadow: HARD2 }}>
         On black nails you go by the cut surface, not by sight. Take thin slivers off the tip. When the center of the cut face turns from dry white to a darker, softer dot, stop there. That dot means the quick is close. Send me a photo of one cut nail and I&apos;ll tell you if you have room.
       </div>
-    </div>
+    </PhoneFrame>
   );
 }
 

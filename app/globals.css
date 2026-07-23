@@ -44,6 +44,15 @@ html, body {
 .gbsc::-webkit-scrollbar { width: 0; display: none; }
 .gbsc { scrollbar-width: none; }
 
+/* marketing sticker cards: slight tilt, lift on hover (pointer devices only) */
+.gbSticker { transform: rotate(var(--tilt, 0deg)); transition: transform 0.18s ease, box-shadow 0.18s ease; }
+@media (hover: hover) {
+  .gbSticker:hover { transform: rotate(var(--tilt, 0deg)) translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gbSticker { transition: none; }
+}
+
 /* ---- animations (exact from the handoff) ---- */
 @keyframes gbWiggle { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
 @keyframes gbFloat  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }

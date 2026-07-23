@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { INK, BORDER, HARD, HARD2, FFD, Pill, Card, CTA, Footer } from '../marketing-ui';
+import { INK, BORDER, HARD2, FFD, Card, CTA, Footer, StickerCard, ICONS, PhoneFrame } from '../marketing-ui';
 
 // Marketing landing page. Server-rendered, no client JS. Reuses the app's
 // sticker design system (globals.css vars) so every "screenshot" here is the
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 // A real-looking slice of the product: one plan step + one chat exchange.
 function PhoneDemo() {
   return (
-    <div style={{ width: 320, maxWidth: '92vw', background: 'var(--cream)', border: BORDER, borderRadius: 26, boxShadow: '6px 6px 0 var(--ink)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <PhoneFrame>
       <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-1)' }}>Goldendoodle · medium teddy · step 5 of 9</div>
       <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: '12px 14px', boxShadow: HARD2 }}>
         <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16 }}>Clipper the body</div>
@@ -36,7 +36,7 @@ function PhoneDemo() {
       <div style={{ maxWidth: '90%', background: '#fff', border: BORDER, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 13, fontWeight: 600, lineHeight: 1.5, boxShadow: HARD2 }}>
         That shelf is a blend line. Switch to your longest comb, hold the clipper tip down, and skim the ridge in short upward flicks. Check it from the side at arm&apos;s length. You want one smooth curve from jaw to chest.
       </div>
-    </div>
+    </PhoneFrame>
   );
 }
 
@@ -114,25 +114,38 @@ export default function Welcome() {
       <section style={{ background: 'var(--canvas)', borderTop: BORDER, borderBottom: BORDER, padding: '40px 22px' }}>
         <div style={{ maxWidth: 1060, margin: '0 auto' }}>
           <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 28, margin: '0 0 8px' }}>A coach with a method, and honest</h2>
-          <p style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--muted-1)', maxWidth: 720, lineHeight: 1.6, margin: '0 0 20px' }}>
+          <p style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--muted-1)', maxWidth: 720, lineHeight: 1.6, margin: '0 0 24px' }}>
             Buddy is built alongside a state-licensed professional grooming school and
             grounded in real curriculum, and it is being piloted by that school&apos;s
             students right now. It coaches the way an instructor does.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Pill>Grounded in real curriculum</Pill>
-            <Pill>Knows breeds and coats</Pill>
-            <Pill>Leads with what to fix</Pill>
-            <Pill>Style choices are not errors</Pill>
-            <Pill>Safety first, always</Pill>
-            <Pill>Tells you when to get a human</Pill>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'stretch' }}>
+            <StickerCard icon={ICONS.book} title="Grounded in real curriculum" tint="var(--primary-soft)" tilt={-1.3}>
+              Answers come from a licensed school&apos;s materials, in an
+              instructor&apos;s voice, never from generic internet advice.
+            </StickerCard>
+            <StickerCard icon={ICONS.paw} title="Knows breeds and coats" tilt={0.8}>
+              A doodle&apos;s matting and a Schnauzer&apos;s skirt get different
+              answers, tools, and blade lengths.
+            </StickerCard>
+            <StickerCard icon={ICONS.target} title="Leads with what to fix" tint="var(--green-tint)" tilt={-0.7}>
+              Photo feedback starts with the problems, located on the dog, so you
+              know exactly where to start.
+            </StickerCard>
+            <StickerCard icon={ICONS.sliders} title="Style choices are not errors" tilt={1.2}>
+              A teddy head on a short summer body is a look, and Buddy knows the
+              difference between a choice and a mistake.
+            </StickerCard>
+            <StickerCard icon={ICONS.shield} title="Safety first, always" tint="var(--primary-soft)" tilt={-1}>
+              Brush before blades, tiny tips on nails, hot-blade checks. The
+              school&apos;s safety rules are baked into every plan.
+            </StickerCard>
+            <StickerCard icon={ICONS.person} title="Knows when you need a human" tilt={0.9}>
+              Tight matting, a stressed dog, anything medical: Buddy tells you to
+              stop and get a person. It coaches between instructors, it never
+              replaces one.
+            </StickerCard>
           </div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted-1)', maxWidth: 720, lineHeight: 1.6, margin: '18px 0 0' }}>
-            Buddy is a coach between instructors, never a replacement for one. If a
-            groom turns risky (tight matting, a stressed dog, anything medical) it
-            tells you to stop and get a person. The dog&apos;s safety outranks your
-            deadline and ours.
-          </p>
         </div>
       </section>
 
