@@ -23,14 +23,17 @@ export const metadata: Metadata = {
     'Buddy builds a step-by-step plan for the exact dog on your table, answers questions mid-groom, and gives straight feedback on your work. Free while in pilot.',
 };
 
-// palette
-const CREAM = '#faf5ec';
+// palette: back to the app's own identity (Buddy yellow + espresso + cream),
+// applied with the same tonal rule (deep text on bright blocks, light text on
+// deep blocks). Julian 7/23: clay read "too professional."
+const CREAM = '#fff8ee';
 const INK = '#2b211a';
-const CLAY = '#c9704a';       // bright block
-const DEEP = '#572a18';       // deep block / text on clay
-const LIGHT = '#f2cdb2';      // light text on deep
-const TINT = '#f5e6d9';       // subtle section tint
-const MUT = '#6f5b4d';        // muted body on cream
+const CLAY = '#ffc32b';       // bright block (Buddy yellow)
+const DEEP = '#2b211a';       // deep block / text on yellow
+const LIGHT = '#ffefc6';      // light text on deep
+const TINT = '#f4ece0';       // subtle section tint
+const MUT = '#6b5d4e';        // muted body on cream
+const GOLD = '#9a7b3f';       // serif accents on cream (yellow itself is too faint)
 
 function ChatPill() {
   return (
@@ -42,7 +45,7 @@ function ChatPill() {
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={MUT} strokeWidth="2.4" strokeLinecap="round" /></svg>
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" stroke={MUT} strokeWidth="2.2" fill="none" /><path d="M5 11a7 7 0 0014 0M12 18v3" stroke={MUT} strokeWidth="2.2" strokeLinecap="round" fill="none" /></svg>
       <span style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path d="M12 19V6M6 12l6-6 6 6" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path d="M12 19V6M6 12l6-6 6 6" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
       </span>
     </Link>
   );
@@ -119,7 +122,7 @@ export default function Welcome() {
       {/* who is Buddy for: serif question + list left, editorial right */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px', display: 'flex', flexWrap: 'wrap', gap: '28px 70px', alignItems: 'flex-start' }}>
         <div style={{ flex: '1 1 300px', maxWidth: 420 }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(30px, 3.8vw, 42px)', color: CLAY, margin: '0 0 18px' }}>Who is Buddy for?</h2>
+          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(30px, 3.8vw, 42px)', color: GOLD, margin: '0 0 18px' }}>Who is Buddy for?</h2>
           <ul style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 8, fontWeight: 700, fontSize: 16, color: INK }}>
             <li>Grooming students</li>
             <li>New groomers, first two years</li>
@@ -152,7 +155,7 @@ export default function Welcome() {
           { i: ICONS.person, t: 'Knows when you need a human', d: 'Tight matting, a stressed dog, anything medical: stop, get a person. It never replaces an instructor.' },
         ].map(a => (
           <div key={a.t}>
-            <span aria-hidden style={{ display: 'block', width: 34, height: 34, color: CLAY, marginBottom: 10 }}>{a.i}</span>
+            <span aria-hidden style={{ display: 'block', width: 34, height: 34, color: GOLD, marginBottom: 10 }}>{a.i}</span>
             <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>{a.t}</div>
             <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.6, color: MUT }}>{a.d}</div>
           </div>
@@ -169,7 +172,7 @@ export default function Welcome() {
             { n: '3', t: 'Ask as you go', d: 'Every step has its own chat. Send a photo and Buddy tells you what to fix, located on the dog. Voice input works with slippery hands.' },
           ].map(s => (
             <div key={s.n} style={{ flex: '1 1 260px', minWidth: 250 }}>
-              <div style={{ ...SERIF, fontWeight: 400, fontSize: 54, lineHeight: 1, color: CLAY }}>{s.n}</div>
+              <div style={{ ...SERIF, fontWeight: 400, fontSize: 54, lineHeight: 1, color: GOLD }}>{s.n}</div>
               <div style={{ fontWeight: 800, fontSize: 18, margin: '10px 0 8px', color: DEEP }}>{s.t}</div>
               <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.6, color: MUT }}>{s.d}</div>
             </div>
@@ -189,14 +192,14 @@ export default function Welcome() {
 
       {/* FAQ: collapsible accordion */}
       <section id="faq" style={{ maxWidth: 880, margin: '0 auto', padding: '64px 26px 8px', ['--gbfInk' as never]: DEEP, ['--gbfMut' as never]: MUT, ['--gbfAccent' as never]: CLAY } as React.CSSProperties}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: CLAY, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: GOLD, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
         {FAQS.map((f, i) => (
           <details key={f.q} className="gbFaq" open={i === 0}>
             <summary>
               <span>{f.q}</span>
               <span className="gbFaqIcon">
-                <svg className="gbFaqPlus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="3" strokeLinecap="round" /></svg>
-                <svg className="gbFaqMinus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M5 12h14" stroke="#fff" strokeWidth="3" strokeLinecap="round" /></svg>
+                <svg className="gbFaqPlus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
+                <svg className="gbFaqMinus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
               </span>
             </summary>
             <p className="gbFaqA">{f.a}</p>
@@ -216,7 +219,7 @@ export default function Welcome() {
           can tell the person who built it directly from inside the app.
         </p>
         <div style={{ marginTop: 26 }}>
-          <Link href="/" style={{ display: 'inline-block', background: CLAY, color: '#fff', borderRadius: 999, padding: '14px 28px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+          <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '14px 28px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
             Open Grooming Buddy
           </Link>
         </div>
