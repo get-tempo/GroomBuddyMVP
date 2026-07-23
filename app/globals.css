@@ -64,6 +64,11 @@ html, body {
 .gbDoodle { position: absolute; pointer-events: none; animation: gbFloat 6s ease-in-out infinite; }
 @media (max-width: 760px) { .gbDoodle { display: none; } }
 
+/* blinking caret in the marketing hero chat pill */
+@keyframes gbCaret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0; } }
+.gbCaret { display: inline-block; width: 2px; height: 1.05em; vertical-align: text-bottom; margin-left: 2px; animation: gbCaret 1.1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .gbCaret { animation: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .gbSticker { transition: none; }
   .gbDoodle { animation: none; }

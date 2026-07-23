@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { INK, BORDER, HARD, HARD2, FFD, CTA, Footer, PhoneFrame, Doodle, StepRow, BentoCell, Starburst, DOTS_BG, DOODLES, ICONS } from '../marketing-ui';
+import AnalyticsInit from '../analytics-init';
 
 // Landing page for DIY / home groomers (owners grooming their own dog).
 // Copy rules: no em dashes, no hype, no fabricated numbers or testimonials.
@@ -43,6 +44,7 @@ function PhoneDemo() {
 export default function Diy() {
   return (
     <main style={{ background: 'var(--cream)', color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
+      <AnalyticsInit />
       {/* hero */}
       <section style={{ position: 'relative', ...DOTS_BG }}>
         <Doodle kind="bubbles" size={56} top={44} left="5%" rotate={-8} delay={0.5} />

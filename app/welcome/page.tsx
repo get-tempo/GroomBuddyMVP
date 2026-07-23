@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
-import { INK, BORDER, HARD2, FFD, CTA, Footer, StickerCard, ICONS, PhoneFrame, Doodle, StepRow, BentoCell, Starburst, DOTS_BG, DOODLES } from '../marketing-ui';
+import Link from 'next/link';
+import { Fraunces } from 'next/font/google';
+import { ICONS } from '../marketing-ui';
+import AnalyticsInit from '../analytics-init';
 
-// Marketing landing page. Server-rendered, no client JS. Reuses the app's
-// sticker design system (globals.css vars) so every "screenshot" here is the
-// real UI style, not a mock. Copy rules: no em dashes, no hype, no fabricated
-// numbers or testimonials, honest early-access framing.
+// Marketing landing page, "warm clay" editorial direction (askperi.ai-inspired
+// structure: tonal color blocks, serif display, sketchy line pets, chat pill
+// straddling the hero seam). Palette is deliberately 4 values + white; the
+// tonal rule everywhere is deep-shade text on bright-shade blocks and
+// light-shade text on deep blocks. Copy rules unchanged: no em dashes, no
+// hype, no fabricated numbers or testimonials.
+
+const fraunces = Fraunces({ subsets: ['latin'], weight: ['400', '600'] });
+const SERIF = fraunces.style.fontFamily;
 
 export const metadata: Metadata = {
   title: 'Grooming Buddy — an AI coach for grooming students and new groomers',
@@ -12,236 +20,275 @@ export const metadata: Metadata = {
     'Buddy builds a step-by-step plan for the exact dog on your table, answers questions mid-groom, and gives straight feedback on your work. Free while in pilot.',
 };
 
-// A real-looking slice of the product: one plan step + one chat exchange.
-function PhoneDemo() {
+// palette
+const CREAM = '#faf5ec';
+const INK = '#2b211a';
+const CLAY = '#c9704a';       // bright block
+const DEEP = '#572a18';       // deep block / text on clay
+const LIGHT = '#f2cdb2';      // light text on deep
+const TINT = '#f5e6d9';       // subtle section tint
+const MUT = '#6f5b4d';        // muted body on cream
+
+const sketch = { fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
+const sketchThin = { ...sketch, strokeWidth: 2 } as const;
+
+// Sketchy hand-drawn sitting dog (hero). Loose, wobbly lines on purpose.
+function SketchDog({ size = 300 }: { size?: number }) {
   return (
-    <PhoneFrame>
-      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13, color: 'var(--muted-1)' }}>Goldendoodle · medium teddy · step 5 of 9</div>
-      <div style={{ background: '#fff', border: BORDER, borderRadius: 16, padding: '12px 14px', boxShadow: HARD2 }}>
-        <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 16 }}>Clipper the body</div>
-        <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.5, marginTop: 6 }}>
-          1. Snap a #4F blade or a 1/2&quot; comb over a #30.<br />
-          2. Clip with the coat growth, shoulders to rear.<br />
-          3. Keep the blade flat so you don&apos;t leave ridges.
-        </div>
-        <div style={{ marginTop: 8, background: 'var(--primary-soft)', border: `2px solid ${'var(--ink)'}`, borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700 }}>
-          Pro tip: on a doodle, overlap each pass by half a blade width. Gaps show up after the coat settles.
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ maxWidth: '85%', background: 'var(--primary)', border: BORDER, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 13, fontWeight: 700, boxShadow: HARD2 }}>
-          The neck into the chest looks like it has a shelf. What do I do?
-        </div>
-      </div>
-      <div style={{ maxWidth: '90%', background: '#fff', border: BORDER, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 13, fontWeight: 600, lineHeight: 1.5, boxShadow: HARD2 }}>
-        That shelf is a blend line. Switch to your longest comb, hold the clipper tip down, and skim the ridge in short upward flicks. Check it from the side at arm&apos;s length. You want one smooth curve from jaw to chest.
-      </div>
-    </PhoneFrame>
+    <svg width={size} height={size} viewBox="0 0 220 220" aria-hidden>
+      {/* floppy ears, filled like the marker pressed harder */}
+      <path d="M64 46 C58 30 66 22 76 26 C84 29 86 40 82 50 C76 47 69 46 64 46 Z" fill="currentColor" />
+      <path d="M128 44 C136 28 148 26 152 36 C155 45 146 54 138 56 C135 51 132 47 128 44 Z" fill="currentColor" />
+      {/* head */}
+      <path {...sketch} d="M66 48 C60 60 62 74 72 82 C84 91 112 92 126 84 C138 77 140 62 132 50 C122 38 104 34 88 38 C79 40 70 43 66 48" />
+      {/* scruffy beard scribble */}
+      <path {...sketchThin} d="M84 88 C86 94 90 97 94 99 M100 92 C101 97 104 101 108 102 M114 90 C116 95 119 98 122 99" />
+      {/* eyes + nose + mouth */}
+      <circle cx="90" cy="62" r="3.4" fill="currentColor" />
+      <circle cx="114" cy="61" r="3.4" fill="currentColor" />
+      <path d="M99 72 C101 69 107 69 109 72 C107 76 101 76 99 72 Z" fill="currentColor" />
+      <path {...sketchThin} d="M104 76 C104 80 101 83 97 83 M104 80 C106 83 110 84 112 82" />
+      {/* body: one big lazy arc down to the haunch */}
+      <path {...sketch} d="M70 84 C58 104 52 132 56 158 C58 172 64 180 74 184" />
+      <path {...sketch} d="M130 86 C144 100 154 122 154 144 C154 164 146 178 132 184" />
+      {/* haunch + hatching */}
+      <path {...sketch} d="M132 184 C116 190 92 190 74 184" />
+      <path {...sketchThin} d="M138 140 C133 148 132 156 134 164 M146 136 C142 146 141 156 143 166" />
+      {/* front legs */}
+      <path {...sketch} d="M88 118 C87 138 87 158 88 178 M108 120 C108 140 108 158 108 178" />
+      <path {...sketchThin} d="M82 182 C86 185 92 185 95 182 M103 182 C107 185 112 185 115 182" />
+      {/* tail: happy curl + motion marks */}
+      <path {...sketch} d="M154 150 C168 146 178 136 178 122 C178 114 172 110 166 114" />
+      <path {...sketchThin} d="M182 106 C185 103 187 99 188 95 M186 116 C190 114 193 111 195 107" />
+      {/* stray collar */}
+      <path {...sketchThin} d="M76 92 C90 100 112 100 126 92" />
+    </svg>
   );
+}
+
+// Small sketch trio for the clay band: curled-up doodle + scissors + comb.
+function SketchTrio({ width = 340 }: { width?: number }) {
+  return (
+    <svg width={width} height={width * 0.5} viewBox="0 0 340 170" aria-hidden>
+      {/* curled sleeping doodle */}
+      <path {...sketch} d="M40 120 C34 96 50 74 78 70 C110 65 138 82 140 106 C142 126 126 140 104 141 C82 142 66 134 60 122" />
+      <path {...sketch} d="M60 122 C66 110 80 104 92 108 C102 111 106 122 100 130 C94 137 80 137 74 130" />
+      <path {...sketchThin} d="M50 96 C46 104 45 112 47 119 M120 84 C126 90 130 98 131 106" />
+      <circle cx="86" cy="118" r="2.6" fill="currentColor" />
+      <path {...sketchThin} d="M92 124 C94 127 98 127 100 125" />
+      {/* zzz */}
+      <path {...sketchThin} d="M128 56 L140 56 L128 68 L140 68 M148 40 L158 40 L148 50 L158 50" />
+      {/* scissors */}
+      <circle {...sketchThin} cx="212" cy="128" r="10" />
+      <circle {...sketchThin} cx="212" cy="98" r="10" />
+      <path {...sketch} d="M220 122 L268 96 M220 104 L268 130" />
+      {/* comb */}
+      <path {...sketch} d="M292 70 L322 70 L322 84 L292 84 Z" />
+      <path {...sketchThin} d="M296 84 L296 104 M303 84 L303 108 M310 84 L310 104 M317 84 L317 108" />
+      {/* stray fluff */}
+      <path {...sketchThin} d="M180 60 C184 56 190 55 194 58 M170 74 C173 70 178 69 181 71" />
+    </svg>
+  );
+}
+
+// The hero chat pill: the actual product, straddling the color seam.
+function ChatPill() {
+  return (
+    <Link href="/" aria-label="Open Grooming Buddy and ask a question" style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 999, padding: '15px 20px', boxShadow: `0 4px 0 ${DEEP}`, textDecoration: 'none', maxWidth: 620, width: '100%' }}>
+      <span style={{ flex: 1, fontSize: 'clamp(14px, 2.2vw, 17px)', fontWeight: 600, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        Hi, I&apos;m Buddy. Stuck mid-groom? Just ask.
+        <span className="gbCaret" style={{ background: INK }} />
+      </span>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={MUT} strokeWidth="2.4" strokeLinecap="round" /></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" stroke={MUT} strokeWidth="2.2" fill="none" /><path d="M5 11a7 7 0 0014 0M12 18v3" stroke={MUT} strokeWidth="2.2" strokeLinecap="round" fill="none" /></svg>
+      <span style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path d="M12 19V6M6 12l6-6 6 6" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
+      </span>
+    </Link>
+  );
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return <a href={href} style={{ color: DEEP, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>{children}</a>;
 }
 
 export default function Welcome() {
   return (
-    <main style={{ background: 'var(--cream)', color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
-      {/* hero */}
-      <section style={{ position: 'relative', ...DOTS_BG }}>
-        <Doodle kind="scissors" size={54} top={40} left="4%" rotate={-18} delay={0.4} />
-        <Doodle kind="paw" size={44} top={190} left="12%" rotate={14} opacity={0.25} delay={1.2} />
-        <Doodle kind="bone" size={58} bottom={50} left="6%" rotate={8} delay={2} />
-        <Doodle kind="sparkle" size={36} top={70} right="6%" rotate={10} opacity={0.8} delay={0.8} />
-        <Doodle kind="paw" size={40} bottom={70} right="4%" rotate={-12} opacity={0.25} delay={1.6} />
-        <div style={{ maxWidth: 1060, margin: '0 auto', padding: '54px 22px 44px', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ flex: '1 1 420px', maxWidth: 560 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/art/Smileydogfunny.jpg" alt="Buddy" style={{ width: 44, height: 44, borderRadius: '50%', border: BORDER, objectFit: 'cover' }} />
-              <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20 }}>Grooming Buddy</span>
-            </div>
-            <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(34px, 6vw, 52px)', lineHeight: 1.08, margin: '0 0 10px' }}>
-              Stuck mid-groom?<br />
-              <span style={{ background: 'var(--primary)', border: BORDER, borderRadius: 14, padding: '0 14px 4px', boxShadow: HARD2, display: 'inline-block', transform: 'rotate(-1.2deg)' }}>Ask.</span>
+    <main style={{ background: CREAM, color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
+      <AnalyticsInit />
+
+      {/* nav: bright clay bar, deep text (tonal pair #1) */}
+      <nav style={{ background: CLAY, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
+          <NavLink href="#how">How it works</NavLink>
+          <NavLink href="#method">Why Buddy</NavLink>
+          <NavLink href="#pricing">Pricing</NavLink>
+          <NavLink href="#schools">For schools</NavLink>
+          <Link href="/" style={{ background: DEEP, color: LIGHT, borderRadius: 999, padding: '10px 20px', fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>Open Buddy</Link>
+        </div>
+      </nav>
+
+      {/* hero: split blocks, chat pill straddling the bottom seam */}
+      <header style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {/* left: sketch block on tint */}
+          <div style={{ flex: '1 1 380px', background: TINT, color: DEEP, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '56px 30px 96px' }}>
+            <SketchDog size={300} />
+          </div>
+          {/* right: deep block, light serif (tonal pair #2) */}
+          <div style={{ flex: '1 1 420px', background: DEEP, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '64px 8vw 110px 5vw' }}>
+            <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(38px, 5.2vw, 62px)', lineHeight: 1.08, color: LIGHT, margin: 0 }}>
+              A coach in your pocket, mid-groom.
             </h1>
-            <span aria-hidden style={{ display: 'block', width: 150, height: 18, margin: '4px 0 14px' }}>{DOODLES.squiggle}</span>
-            <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.6, color: 'var(--muted-1)', margin: '0 0 22px' }}>
-              Buddy is an AI coach for grooming students and new groomers. It builds a
-              step-by-step plan for the exact dog on your table, answers your questions
-              while you work, and gives you straight feedback on photos of your groom.
+            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 460 }}>
+              Buddy plans the groom for the exact dog on your table, answers while
+              you work, and tells you straight what to fix.
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <CTA href="/">Try it now, it&apos;s free</CTA>
-              <CTA href="#schools" tone="plain">For schools</CTA>
-            </div>
-            <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 700, color: 'var(--muted-2)' }}>
-              No signup. Works on your phone at the table.
+          </div>
+        </div>
+        {/* the pill on the seam */}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
+          <ChatPill />
+        </div>
+      </header>
+
+      {/* clay band: sketchy pets + promise (tonal pair #1) */}
+      <section style={{ background: CLAY, color: DEEP, padding: '92px 26px 64px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '30px 60px', justifyContent: 'center' }}>
+          <div style={{ flex: '1 1 320px', display: 'flex', justifyContent: 'center' }}><SketchTrio /></div>
+          <div style={{ flex: '1 1 380px', maxWidth: 520 }}>
+            <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
+              Helping grooming students and new groomers work with confidence.
+            </h2>
+            <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
+              Your instructor can&apos;t be at every table, and a 40-minute video
+              doesn&apos;t help with wet hands. Buddy is the answer in the moment,
+              grounded in a real school&apos;s curriculum.
+            </p>
+            <div style={{ marginTop: 22 }}>
+              <Link href="/" style={{ display: 'inline-block', background: '#fff', color: DEEP, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+                Try Buddy free
+              </Link>
             </div>
           </div>
-          <PhoneDemo />
         </div>
       </section>
 
-      {/* the pain: bento, one big scene + two supports */}
-      <section style={{ background: 'var(--canvas)', borderTop: BORDER, borderBottom: BORDER, padding: '44px 22px', position: 'relative' }}>
-        <Doodle kind="squiggle" size={70} top={22} right="8%" rotate={-6} opacity={0.4} />
-        <div style={{ maxWidth: 1060, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 30, margin: '0 0 22px' }}>You know this moment</h2>
-          <div className="gbBento">
-            <BentoCell span={4} tint="var(--primary-soft)" tilt={-0.5}>
-              <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 260px' }}>
-                  <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(20px, 2.6vw, 26px)', lineHeight: 1.25, marginBottom: 10 }}>
-                    Wet doodle on the table. Clipper in hand. And your mind goes blank.
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.6, color: 'var(--muted-1)' }}>
-                    Your instructor is three tables away with their own dog. The clock is
-                    running, the dog is patient for now, and you just need someone to say
-                    what comes next.
-                  </div>
+      {/* who is Buddy for: serif question + plain list left, editorial right */}
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px', display: 'flex', flexWrap: 'wrap', gap: '28px 70px', alignItems: 'flex-start' }}>
+        <div style={{ flex: '1 1 300px', maxWidth: 420 }}>
+          <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(30px, 3.8vw, 42px)', color: CLAY, margin: '0 0 18px' }}>Who is Buddy for?</h2>
+          <ul style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 8, fontWeight: 700, fontSize: 16, color: INK }}>
+            <li>Grooming students</li>
+            <li>New groomers, first two years</li>
+            <li>Mobile groomers working solo</li>
+            <li>Grooming schools</li>
+          </ul>
+        </div>
+        <div style={{ flex: '1 1 380px', maxWidth: 560 }}>
+          <p style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
+            The hardest part of learning to groom is the moment nobody is standing
+            next to you. Buddy is for everyone still in that stretch: students
+            between instructor check-ins, new groomers building speed and
+            confidence, and solo mobile groomers with no senior groomer in the
+            van. It saves the question for the moment it matters, on the dog it
+            matters for.
+          </p>
+          <div style={{ margin: '14px 0 0', color: MUT }}>&mdash;</div>
+          <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '6px 0 0' }}>
+            Buddy was made specifically for the grooming table.
+          </p>
+        </div>
+      </section>
+
+      {/* how it works: cream, editorial, no boxes */}
+      <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 60px' }}>
+        <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 40px' }}>How it works</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '36px 48px' }}>
+          {[
+            { n: '1', t: 'Tell Buddy about the dog', d: 'Breed, coat condition, the style the client asked for. Twenty seconds of taps, with an Other option for everything.' },
+            { n: '2', t: 'Get the plan for that dog', d: 'A 7 to 9 step plan in the school’s method: order, tools, blade lengths, what good looks like, and the one thing to watch on each step.' },
+            { n: '3', t: 'Ask as you go', d: 'Every step has its own chat. Send a photo and Buddy tells you what to fix first, located on the dog, no fluff. Voice input works with slippery hands.' },
+          ].map(s => (
+            <div key={s.n} style={{ flex: '1 1 260px', minWidth: 250 }}>
+              <div style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 54, lineHeight: 1, color: CLAY }}>{s.n}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, margin: '10px 0 8px', color: DEEP }}>{s.t}</div>
+              <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.6, color: MUT }}>{s.d}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* deep band: the method, light text, simple two-column list */}
+      <section id="method" style={{ background: DEEP, color: LIGHT, padding: '64px 26px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(28px, 3.4vw, 38px)', margin: '0 0 10px' }}>A coach with a method, and honest</h2>
+          <p style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.6, opacity: 0.75, maxWidth: 680, margin: '0 0 34px' }}>
+            Built alongside a state-licensed professional grooming school, grounded
+            in real curriculum, and piloted by that school&apos;s students right now.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '26px 48px' }}>
+            {[
+              { i: ICONS.book, t: 'Grounded in real curriculum', d: 'Answers come from a licensed school’s materials, in an instructor’s voice.' },
+              { i: ICONS.paw, t: 'Knows breeds and coats', d: 'A doodle’s matting and a Schnauzer’s skirt get different answers and blade lengths.' },
+              { i: ICONS.target, t: 'Leads with what to fix', d: 'Photo feedback starts with the problems, located on the dog.' },
+              { i: ICONS.sliders, t: 'Style choices are not errors', d: 'A teddy head on a short body is a look. Buddy knows a choice from a mistake.' },
+              { i: ICONS.shield, t: 'Safety first, always', d: 'Brush before blades, tiny tips on nails, hot-blade checks, baked into every plan.' },
+              { i: ICONS.person, t: 'Knows when you need a human', d: 'Tight matting, a stressed dog, anything medical: stop, get a person. It never replaces an instructor.' },
+            ].map(f => (
+              <div key={f.t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', color: LIGHT }}>
+                <span aria-hidden style={{ flex: 'none', width: 26, height: 26, marginTop: 2, color: CLAY }}>{f.i}</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{f.t}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.55, opacity: 0.75 }}>{f.d}</div>
                 </div>
-                <span aria-hidden style={{ width: 84, height: 84, flex: 'none', transform: 'rotate(8deg)', opacity: 0.85 }}>{DOODLES.paw}</span>
               </div>
-            </BentoCell>
-            <BentoCell span={2} tilt={0.8}>
-              <span aria-hidden style={{ display: 'block', width: 40, height: 40, marginBottom: 8 }}>
-                <svg viewBox="0 0 40 40" width="100%" height="100%"><rect x="4" y="8" width="32" height="24" rx="4" fill="none" stroke="var(--ink)" strokeWidth="2.4" /><path d="M17 14v12l10-6-10-6z" fill="var(--ink)" /></svg>
-              </span>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, marginBottom: 6 }}>The video is 40 minutes long</div>
-              <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, color: 'var(--muted-1)' }}>
-                The answer is somewhere in a tutorial you can&apos;t scrub through with wet
-                hands. You need one sentence, not an episode.
-              </div>
-            </BentoCell>
-            <BentoCell span={2} tilt={-0.8}>
-              <span aria-hidden style={{ display: 'block', width: 40, height: 40, marginBottom: 8 }}>
-                <svg viewBox="0 0 40 40" width="100%" height="100%"><rect x="7" y="10" width="26" height="20" rx="6" fill="none" stroke="var(--ink)" strokeWidth="2.4" /><circle cx="16" cy="20" r="2.4" fill="var(--ink)" /><circle cx="24" cy="20" r="2.4" fill="var(--ink)" /><path d="M20 10V5M16 34h8" stroke="var(--ink)" strokeWidth="2.4" strokeLinecap="round" /></svg>
-              </span>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, marginBottom: 6 }}>Generic AI doesn&apos;t groom</div>
-              <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, color: 'var(--muted-1)' }}>
-                A general chatbot gives confident answers with no method behind them. It
-                has never heard of your school&apos;s way of doing things.
-              </div>
-            </BentoCell>
-            <BentoCell span={4} tilt={0.4}>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, marginBottom: 6 }}>Buddy is the instructor&apos;s voice between check-ins</div>
-              <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.6, color: 'var(--muted-1)' }}>
-                Ask in plain words, get the next step, the tool, and the technique cue,
-                grounded in a real school&apos;s curriculum. Then keep grooming.
-              </div>
-            </BentoCell>
-            <BentoCell span={2} tint="var(--green-tint)" tilt={-0.6}>
-              <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 34, lineHeight: 1 }}>7 to 9</div>
-              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: 'var(--green-text)', marginTop: 6 }}>
-                steps in every plan, in the school&apos;s order, tailored to the dog in front of you.
-              </div>
-            </BentoCell>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* how it works: numbered zigzag */}
-      <section style={{ maxWidth: 1060, margin: '0 auto', padding: '48px 22px', position: 'relative' }}>
-        <Doodle kind="bone" size={48} top={30} right="3%" rotate={-14} opacity={0.25} delay={1} />
-        <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 30, margin: '0 0 30px' }}>How it works</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
-          <StepRow n={1} title="Tell Buddy about the dog" doodle="paw" tint="var(--primary-soft)">
-            Breed, coat condition, the style the client asked for. Twenty seconds of
-            taps, with an Other option for everything.
-          </StepRow>
-          <StepRow n={2} title="Get the plan for that dog" doodle="scissors" tint="var(--green-tint)" flip>
-            A 7 to 9 step plan in the school&apos;s method: order, tools, blade
-            lengths, what good looks like, and the one thing to watch on each step.
-          </StepRow>
-          <StepRow n={3} title="Ask as you go" doodle="bubbles" tint="var(--neutral-fill)">
-            Every step has its own chat. Send a photo and Buddy tells you what to
-            fix first, located on the dog, no fluff. Voice input works with slippery hands.
-          </StepRow>
+      {/* pricing: cream, flat and honest */}
+      <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 64px' }}>
+        <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
+          Free while it&apos;s in pilot.
+        </h2>
+        <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, maxWidth: 660, margin: 0 }}>
+          The whole thing, no signup. When paid plans arrive they&apos;ll be around
+          $19 a month for individuals, and early users will get a founding rate.
+          This is an early product: some answers will miss, and when they do you
+          can tell the person who built it directly from inside the app.
+        </p>
+        <div style={{ marginTop: 26 }}>
+          <Link href="/" style={{ display: 'inline-block', background: CLAY, color: '#fff', borderRadius: 999, padding: '14px 28px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+            Open Grooming Buddy
+          </Link>
         </div>
       </section>
 
-      {/* why it's different */}
-      <section style={{ background: 'var(--canvas)', borderTop: BORDER, borderBottom: BORDER, padding: '44px 22px' }}>
-        <div style={{ maxWidth: 1060, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 30, margin: '0 0 8px' }}>A coach with a method, and honest</h2>
-          <p style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--muted-1)', maxWidth: 720, lineHeight: 1.6, margin: '0 0 24px' }}>
-            Buddy is built alongside a state-licensed professional grooming school and
-            grounded in real curriculum, and it is being piloted by that school&apos;s
-            students right now. It coaches the way an instructor does.
-          </p>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'stretch' }}>
-            <StickerCard icon={ICONS.book} title="Grounded in real curriculum" tint="var(--primary-soft)" tilt={-1.3}>
-              Answers come from a licensed school&apos;s materials, in an
-              instructor&apos;s voice, never from generic internet advice.
-            </StickerCard>
-            <StickerCard icon={ICONS.paw} title="Knows breeds and coats" tilt={0.8}>
-              A doodle&apos;s matting and a Schnauzer&apos;s skirt get different
-              answers, tools, and blade lengths.
-            </StickerCard>
-            <StickerCard icon={ICONS.target} title="Leads with what to fix" tint="var(--green-tint)" tilt={-0.7}>
-              Photo feedback starts with the problems, located on the dog, so you
-              know exactly where to start.
-            </StickerCard>
-            <StickerCard icon={ICONS.sliders} title="Style choices are not errors" tilt={1.2}>
-              A teddy head on a short summer body is a look, and Buddy knows the
-              difference between a choice and a mistake.
-            </StickerCard>
-            <StickerCard icon={ICONS.shield} title="Safety first, always" tint="var(--primary-soft)" tilt={-1}>
-              Brush before blades, tiny tips on nails, hot-blade checks. The
-              school&apos;s safety rules are baked into every plan.
-            </StickerCard>
-            <StickerCard icon={ICONS.person} title="Knows when you need a human" tilt={0.9}>
-              Tight matting, a stressed dog, anything medical: Buddy tells you to
-              stop and get a person. It coaches between instructors, it never
-              replaces one.
-            </StickerCard>
-          </div>
-        </div>
-      </section>
-
-      {/* pricing */}
-      <section style={{ maxWidth: 1060, margin: '0 auto', padding: '48px 22px', display: 'flex', flexWrap: 'wrap', gap: 36, alignItems: 'center' }}>
-        <Starburst big="$0" small="while in pilot" />
-        <div style={{ flex: '1 1 380px', maxWidth: 660 }}>
-          <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 30, margin: '0 0 12px' }}>What it costs</h2>
-          <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.6, color: 'var(--muted-1)', margin: 0 }}>
-            Free while it&apos;s in pilot. When paid plans arrive they&apos;ll be around
-            $19 a month for individuals, and early users will get a founding rate.
-            This is an early product: some answers will miss, and when they do you can
-            tell the person who built it directly from inside the app.
-          </p>
-          <div style={{ marginTop: 20 }}>
-            <CTA href="/">Open Grooming Buddy</CTA>
-          </div>
-        </div>
-      </section>
-
-      {/* schools */}
-      <section id="schools" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '48px 22px', position: 'relative', overflow: 'hidden' }}>
-        <span aria-hidden style={{ position: 'absolute', top: 20, right: '5%', width: 90, height: 30, opacity: 0.5 }}>
-          <svg viewBox="0 0 60 20" width="100%" height="100%"><path d="M3 12c5-8 9 8 14 0s9 8 14 0 9 8 14 0 9 8 12 2" fill="none" stroke="var(--primary)" strokeWidth="2.4" strokeLinecap="round" /></svg>
-        </span>
-        <span aria-hidden style={{ position: 'absolute', bottom: 14, left: '3%', width: 54, height: 54, opacity: 0.3 }}>
-          <svg viewBox="0 0 40 40" width="100%" height="100%"><circle cx="12" cy="14" r="3.2" fill="none" stroke="var(--cream)" strokeWidth="2.4" /><circle cx="20" cy="11" r="3.2" fill="none" stroke="var(--cream)" strokeWidth="2.4" /><circle cx="28" cy="14" r="3.2" fill="none" stroke="var(--cream)" strokeWidth="2.4" /><path d="M20 19c-5 0-9 4-9 7.8 0 2.6 2 4.6 4.6 4.6 1.7 0 3-.7 4.4-.7s2.7.7 4.4.7c2.6 0 4.6-2 4.6-4.6C29 23 25 19 20 19z" fill="none" stroke="var(--cream)" strokeWidth="2.4" /></svg>
-        </span>
-        <div style={{ maxWidth: 1060, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 28, margin: '0 0 12px', color: 'var(--primary)' }}>
+      {/* schools: tint band, editorial */}
+      <section id="schools" style={{ background: TINT, padding: '64px 26px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
             For grooming schools: your curriculum, your method, your brand
           </h2>
-          <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, maxWidth: 760, margin: '0 0 18px', opacity: 0.92 }}>
-            Your students already ask AI questions mid-groom, and today it answers with
-            no method at all. Buddy lets your school own that moment instead: an
+          <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, maxWidth: 760, margin: '0 0 20px' }}>
+            Your students already ask AI questions mid-groom, and today it answers
+            with no method at all. Buddy lets your school own that moment: an
             instance branded to your school, grounded in your curriculum and video
-            library, answering in your voice, with your safety rules. Your materials
-            stay yours.
+            library, answering in your voice, with your safety rules. Your
+            materials stay yours.
           </p>
-          <a
-            href="mailto:andrew+julian@get-tempo.com?subject=Grooming%20Buddy%20for%20our%20school"
-            style={{ display: 'inline-block', background: 'var(--primary)', color: INK, border: `2.5px solid var(--cream)`, borderRadius: 999, padding: '13px 26px', fontFamily: FFD, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}
-          >
+          <a href="mailto:andrew+julian@get-tempo.com?subject=Grooming%20Buddy%20for%20our%20school" style={{ display: 'inline-block', background: DEEP, color: LIGHT, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
             Talk to us about a pilot
           </a>
         </div>
       </section>
 
-      <Footer crossLink={{ href: '/diy', label: 'for home groomers' }} />
+      <footer style={{ padding: '26px 22px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: MUT }}>
+        Grooming Buddy · early access · <Link href="/diy" style={{ color: MUT }}>for home groomers</Link> · <a href="mailto:andrew+julian@get-tempo.com" style={{ color: MUT }}>contact</a>
+      </footer>
     </main>
   );
 }
