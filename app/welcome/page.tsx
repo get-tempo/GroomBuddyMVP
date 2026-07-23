@@ -70,7 +70,7 @@ export default function Welcome() {
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
           <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(470px, 98%)', height: 'auto', display: 'block' }} />
+            <img src="/art/sketch-reading-doodle.png" alt="Hand-drawn sketch of a fluffy doodle reading a book" style={{ width: 'min(400px, 94%)', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
             <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
