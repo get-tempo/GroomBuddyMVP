@@ -61,14 +61,14 @@ export default function Diy() {
         </div>
       </header>
 
-      {/* promise band: pale butter, the money moment + the golden */}
-      <section style={{ background: LIGHT, color: DEEP, padding: '84px 26px 0' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
-          <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
+      {/* promise band: pale butter, the empty-wallet doodle + the money moment */}
+      <section style={{ background: LIGHT, color: DEEP, padding: '72px 26px 56px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 50px', justifyContent: 'center' }}>
+          <div style={{ flex: '1 1 300px', maxWidth: 400, display: 'flex', justifyContent: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(470px, 98%)', height: 'auto', display: 'block' }} />
+            <img src="/art/sketch-wallet-doodle.png" alt="Hand-drawn sketch of a worried doodle beside an empty wallet and scattered coins" style={{ width: 'min(340px, 88%)', height: 'auto', display: 'block' }} />
           </div>
-          <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
+          <div style={{ flex: '1 1 380px', maxWidth: 540 }}>
             <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
               Those salon visits add up.
             </h2>
@@ -89,7 +89,7 @@ export default function Diy() {
       {/* why you're here: bento, editorial-recolored */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px' }}>
         <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px', maxWidth: 760 }}>
-          You can absolutely do this. Here&apos;s what usually stops people.
+          Grooming at home saves real money. Buddy makes it doable.
         </h2>
         <div className="gbBento">
           <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center' }}>

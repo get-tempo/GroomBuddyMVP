@@ -68,14 +68,14 @@ export default function Welcome() {
         </div>
       </header>
 
-      {/* promise band: pale butter, the golden roams free */}
-      <section style={{ background: LIGHT, color: DEEP, padding: '84px 26px 0' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
-          <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
+      {/* promise band: pale butter, thinking doodle beside the breed-book line */}
+      <section style={{ background: LIGHT, color: DEEP, padding: '72px 26px 56px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 50px', justifyContent: 'center' }}>
+          <div style={{ flex: '1 1 300px', maxWidth: 400, display: 'flex', justifyContent: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-reading-doodle.png" alt="Hand-drawn sketch of a fluffy doodle reading a book" style={{ width: 'min(400px, 94%)', height: 'auto', display: 'block' }} />
+            <img src="/art/sketch-thinking-doodle.png" alt="Hand-drawn sketch of a doodle thinking, with a lightbulb" style={{ width: 'min(340px, 88%)', height: 'auto', display: 'block' }} />
           </div>
-          <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
+          <div style={{ flex: '1 1 380px', maxWidth: 540 }}>
             <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
               New breed on the table? Buddy already knows it.
             </h2>
