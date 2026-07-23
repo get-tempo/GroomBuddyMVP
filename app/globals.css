@@ -73,29 +73,36 @@ html, body {
 .gbFaq .gbFaqMinus, .gbFaq[open] .gbFaqPlus { display: none; }
 .gbFaq[open] .gbFaqMinus { display: block; }
 
-/* hero phone demo: question types in, Buddy thinks, answer appears, loop */
-.gbDemoQ { animation: gbDemoQ 12s ease infinite; }
-.gbDemoT { animation: gbDemoT 12s ease infinite; }
-.gbDemoA { animation: gbDemoA 12s ease infinite; }
-@keyframes gbDemoQ {
-  0%, 2% { opacity: 0; transform: scale(0.92); }
+/* app demo loop (16s): plan card -> step question -> Buddy thinks -> answer */
+.gbDemoP { animation: gbDemoP 16s ease infinite; }
+.gbDemoQ { animation: gbDemoQ 16s ease infinite; }
+.gbDemoT { animation: gbDemoT 16s ease infinite; }
+.gbDemoA { animation: gbDemoA 16s ease infinite; }
+@keyframes gbDemoP {
+  0%, 2% { opacity: 0; transform: scale(0.95); }
   5% { opacity: 1; transform: scale(1); }
-  92% { opacity: 1; }
-  97%, 100% { opacity: 0; }
+  93% { opacity: 1; }
+  98%, 100% { opacity: 0; }
+}
+@keyframes gbDemoQ {
+  0%, 25% { opacity: 0; transform: scale(0.92); }
+  28% { opacity: 1; transform: scale(1); }
+  93% { opacity: 1; }
+  98%, 100% { opacity: 0; }
 }
 @keyframes gbDemoT {
-  0%, 7% { opacity: 0; }
-  10%, 22% { opacity: 1; }
-  26%, 100% { opacity: 0; }
+  0%, 31% { opacity: 0; }
+  34%, 44% { opacity: 1; }
+  48%, 100% { opacity: 0; }
 }
 @keyframes gbDemoA {
-  0%, 24% { opacity: 0; transform: scale(0.95); }
-  28% { opacity: 1; transform: scale(1); }
-  92% { opacity: 1; }
-  97%, 100% { opacity: 0; }
+  0%, 46% { opacity: 0; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+  93% { opacity: 1; }
+  98%, 100% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gbDemoQ, .gbDemoT, .gbDemoA { animation: none; }
+  .gbDemoP, .gbDemoQ, .gbDemoT, .gbDemoA { animation: none; }
   .gbDemoT { display: none; }
 }
 

@@ -57,10 +57,20 @@ function ChatPill() {
 function ChatDemo() {
   return (
     <PhoneFrame tall>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: MUT }}>Willow · Doodle · ears</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: MUT }}>Willow · Doodle · medium teddy</div>
+      {/* phase 1: the plan */}
+      <div className="gbDemoP" style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, padding: '10px 12px' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, color: INK }}>Step 6 of 9 · Tidy and clean the ears</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, color: INK, marginTop: 5 }}>
+          1. Pluck loose inner-ear hair, a little at a time.<br />
+          2. Wipe with ear cleaner on a cotton pad.<br />
+          3. Scissor the edges to follow the ear&apos;s shape.
+        </div>
+      </div>
+      {/* phase 2: a question about this step */}
       <div className="gbDemoQ" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ maxWidth: '85%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 13, fontWeight: 700, color: INK }}>
-          How do I tidy the ear edges without nicking the leather?
+        <div style={{ maxWidth: '85%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 12.5, fontWeight: 700, color: INK }}>
+          How do I tidy the edges without nicking the leather?
         </div>
       </div>
       <div className="gbDemoT" style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '2px 6px' }}>
@@ -68,18 +78,18 @@ function ChatDemo() {
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .2s' }} />
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .4s' }} />
       </div>
+      {/* phase 3: Buddy's real answer + the real video card */}
       <div className="gbDemoA" style={{ maxWidth: '94%' }}>
         <div style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, color: INK }}>
-          Comb the ear hair straight down so you can see the leather&apos;s natural
-          line. Hold the ear between thumb and fingers so you can <b>feel</b> where
-          the leather ends, that tactile read is your safety line. Thinning shears,
-          parallel to the edge, small bites from base to tip, angled away from the
-          leather so any slip goes into air, not skin.
+          Comb the ear hair straight down and hold the ear so you can <b>feel</b>
+          {' '}where the leather ends, that&apos;s your safety line. Thinning shears,
+          parallel to the edge, small bites from base to tip, angled away from
+          the leather so any slip goes into air, not skin.
         </div>
         <div style={{ marginTop: 8, border: `2px solid ${INK}`, borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-          <div style={{ background: INK, height: 74, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ width: 34, height: 34, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l12-7-12-7z" fill={INK} /></svg>
+          <div style={{ background: INK, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ width: 32, height: 32, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l12-7-12-7z" fill={INK} /></svg>
             </span>
           </div>
           <div style={{ padding: '7px 10px', fontSize: 11.5, fontWeight: 700, color: MUT, lineHeight: 1.4 }}>
@@ -128,12 +138,11 @@ export default function Welcome() {
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
             <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
-              Don&apos;t know the technique?
+              A coach in your pocket, mid-groom.
             </h1>
             <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
-              Ear edges, face shapes, blend lines, a coat you haven&apos;t done
-              before. Buddy shows you how, step by step, in a real school&apos;s
-              method, while the dog is still on the table.
+              Buddy plans the groom for the exact dog on your table, answers while
+              you work, and tells you straight what to fix.
             </p>
           </div>
         </div>
@@ -217,8 +226,8 @@ export default function Welcome() {
       </section>
 
       {/* how it works: steps left, the animated app demo right */}
-      <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 60px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 40px' }}>How it works</h2>
+      <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 60px' }}>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 26px' }}>How it works</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '44px 70px', alignItems: 'center' }}>
           <div style={{ flex: '1 1 380px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 30 }}>
             {[
