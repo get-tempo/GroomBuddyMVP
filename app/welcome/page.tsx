@@ -69,27 +69,31 @@ export default function Welcome() {
     <main style={{ background: CREAM, color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
       <AnalyticsInit />
 
-      {/* nav: bright clay bar, deep text */}
-      <nav style={{ background: CLAY, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+      {/* nav: cream, yellow reserved for the CTA accent */}
+      <nav style={{ background: CREAM, borderBottom: `2px solid ${TINT}`, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <NavLink href="#how">How it works</NavLink>
           <NavLink href="#faq">FAQ</NavLink>
           <NavLink href="#pricing">Pricing</NavLink>
           <NavLink href="#schools">For schools</NavLink>
-          <Link href="/" style={{ background: DEEP, color: LIGHT, borderRadius: 999, padding: '10px 20px', fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>Open Buddy</Link>
+          <Link href="/" style={{ background: CLAY, color: INK, borderRadius: 999, padding: '10px 20px', fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: `0 2px 0 ${INK}` }}>Open Buddy</Link>
         </div>
       </nav>
 
-      {/* hero: deep block, chat pill on the bottom seam.
-          (Returns to a split layout when the sketch artwork lands.) */}
+      {/* hero: sketch block + deep block, chat pill on the bottom seam. The
+          golden's paw prints run down toward the pill on purpose. */}
       <header style={{ position: 'relative' }}>
-        <div style={{ background: DEEP, padding: '90px 26px 120px' }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.6vw, 66px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 700 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 340px', background: TINT, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '36px 24px 0' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(400px, 88%)', height: 'auto', display: 'block' }} />
+          </div>
+          <div style={{ flex: '1 1 420px', background: DEEP, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 5vw 110px' }}>
+            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(38px, 5.2vw, 62px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 620 }}>
               A coach in your pocket, mid-groom.
             </h1>
-            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 520 }}>
+            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 480 }}>
               Buddy plans the groom for the exact dog on your table, answers while
               you work, and tells you straight what to fix.
             </p>
@@ -100,8 +104,8 @@ export default function Welcome() {
         </div>
       </header>
 
-      {/* clay band: the promise */}
-      <section style={{ background: CLAY, color: DEEP, padding: '92px 26px 64px' }}>
+      {/* promise band: tint, yellow only on the CTA */}
+      <section style={{ background: TINT, color: DEEP, padding: '92px 26px 64px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
             Helping grooming students and new groomers work with confidence.
@@ -112,7 +116,7 @@ export default function Welcome() {
             grounded in a real school&apos;s curriculum.
           </p>
           <div style={{ marginTop: 22 }}>
-            <Link href="/" style={{ display: 'inline-block', background: '#fff', color: DEEP, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+            <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
               Try Buddy free
             </Link>
           </div>
