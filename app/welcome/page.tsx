@@ -69,8 +69,9 @@ export default function Welcome() {
     <main style={{ background: CREAM, color: INK, minHeight: '100dvh', overflowX: 'hidden' }}>
       <AnalyticsInit />
 
-      {/* nav: cream, blending into the page; yellow reserved for the CTA accent */}
-      <nav style={{ background: CREAM, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+      {/* nav: pale butter (the page cream reads as plain white on screen),
+          matching the promise band so the dark hero sits between two creams */}
+      <nav style={{ background: LIGHT, padding: '16px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <NavLink href="#how">How it works</NavLink>
