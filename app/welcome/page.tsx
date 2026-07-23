@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { INK, BORDER, HARD, HARD2, FFD, Pill, Card, CTA, Footer } from '../marketing-ui';
 
 // Marketing landing page. Server-rendered, no client JS. Reuses the app's
 // sticker design system (globals.css vars) so every "screenshot" here is the
@@ -11,44 +11,6 @@ export const metadata: Metadata = {
   description:
     'Buddy builds a step-by-step plan for the exact dog on your table, answers questions mid-groom, and gives straight feedback on your work. Free while in pilot.',
 };
-
-const INK = 'var(--ink)';
-const BORDER = `2.5px solid ${INK}`;
-const HARD = `3px 3px 0 ${INK}`;
-const HARD2 = `2px 2px 0 ${INK}`;
-const FFD = 'var(--font-display)';
-
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span style={{ display: 'inline-block', background: '#fff', border: BORDER, borderRadius: 999, padding: '6px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 14, boxShadow: HARD2, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: '#fff', border: BORDER, borderRadius: 18, padding: '18px 20px', boxShadow: HARD, flex: '1 1 240px', minWidth: 240 }}>
-      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.55, color: 'var(--muted-1)' }}>{children}</div>
-    </div>
-  );
-}
-
-function CTA({ href, children, tone }: { href: string; children: React.ReactNode; tone?: 'plain' }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: 'inline-block', background: tone === 'plain' ? '#fff' : 'var(--primary)', color: INK,
-        border: BORDER, borderRadius: 999, padding: '13px 26px', fontFamily: FFD, fontWeight: 800,
-        fontSize: 16, textDecoration: 'none', boxShadow: HARD,
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
 
 // A real-looking slice of the product: one plan step + one chat exchange.
 function PhoneDemo() {
@@ -210,9 +172,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      <footer style={{ padding: '26px 22px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--muted-2)' }}>
-        Grooming Buddy · early access · <a href="mailto:andrew+julian@get-tempo.com" style={{ color: 'var(--muted-1)' }}>contact</a>
-      </footer>
+      <Footer crossLink={{ href: '/diy', label: 'for home groomers' }} />
     </main>
   );
 }
