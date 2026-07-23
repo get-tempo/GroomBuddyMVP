@@ -1651,20 +1651,27 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
           right-edge fade + chevron so it's clear they scroll sideways. */}
       {chips && (
         <div style={{ position: 'relative', padding: compact ? '8px 0 4px' : '10px 18px 12px' }}>
+          {/* vertical padding so the pills' hard shadow + border don't get
+              clipped by the horizontal-scroll container */}
           <div
             ref={chipScrollRef}
             className="gbsc"
             onScroll={updateChipScroll}
-            style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingRight: 18 }}
+            style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '3px 18px 6px 3px' }}
           >
             {chips({ deliver, prefill, busy })}
           </div>
           {chipsMore && (
             <div
-              aria-hidden
               style={{ position: 'absolute', top: compact ? 8 : 10, bottom: compact ? 4 : 12, right: compact ? 0 : 18, width: 42, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: `linear-gradient(to right, transparent, ${compact ? '#fff' : 'var(--cream)'} 62%)` }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <button
+                onClick={() => chipScrollRef.current?.scrollBy({ left: Math.max(140, (chipScrollRef.current?.clientWidth ?? 240) * 0.7), behavior: 'smooth' })}
+                aria-label="More suggestions"
+                style={{ pointerEvents: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 2px 8px 8px', display: 'flex', alignItems: 'center' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
             </div>
           )}
         </div>
