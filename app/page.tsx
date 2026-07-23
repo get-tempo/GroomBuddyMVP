@@ -6,7 +6,7 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type
 import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
-import { logEvent, getSessionId, getDeviceId } from '@/lib/analytics';
+import { logEvent, getSessionId, getDeviceId, initAnalytics } from '@/lib/analytics';
 import { parsePlanSteps } from '@/lib/planSteps';
 import { BREED_INTAKE, COAT_TYPES, COAT_TYPE_QUESTION, resolveTypedBreed, type IntakeSet } from '@/data/breed-intake';
 
@@ -139,6 +139,7 @@ function whenLabel(ts: number): string {
 }
 
 export default function BuddyApp() {
+  useEffect(() => { initAnalytics(); }, []);
   const [screen, setScreen] = useState<Screen>('intro');
   const [stepIdx, setStepIdx] = useState(0); // fresh groom: start at step 1
   // The groom plan for the dog on the table. Generated per-dog by /api/plan from
