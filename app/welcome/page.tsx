@@ -151,12 +151,13 @@ export default function Welcome() {
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
             <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
-              Helping grooming students and new groomers work with confidence.
+              New breed on the table? Skip the trip to the book.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
-              Your instructor can&apos;t be at every table, and a 40-minute video
-              doesn&apos;t help with wet hands. Buddy is the answer in the moment,
-              grounded in a real school&apos;s curriculum.
+              Every salon has a dog-eared breed book by the front desk. Buddy
+              answers at the table instead: the full plan, the tools, and the
+              technique for the exact dog in front of you, grounded in a real
+              school&apos;s curriculum.
             </p>
             <div style={{ marginTop: 22 }}>
               <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
