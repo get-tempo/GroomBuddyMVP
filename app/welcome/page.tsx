@@ -74,7 +74,7 @@ export default function Welcome() {
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
             <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
-              New breed on the table? Skip the trip to the book.
+              New breed on the table? Buddy already knows it.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
               Every salon has a dog-eared breed book by the front desk. Buddy
@@ -103,7 +103,7 @@ export default function Welcome() {
             <li>Grooming schools</li>
           </ul>
         </div>
-        <div style={{ flex: '1 1 380px', maxWidth: 560 }}>
+        <div style={{ flex: '1 1 380px', maxWidth: 560, paddingTop: 14 }}>
           <p style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
             The hardest part of grooming is the moment nobody is standing next to
             you. Buddy is for everyone in that stretch: students between
@@ -111,7 +111,7 @@ export default function Welcome() {
             Or anyone with a question, because nobody remembers every breed.
           </p>
           <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '16px 0 0' }}>
-            Made for the grooming table.
+            Grooming Buddy is made for the grooming table.
           </p>
         </div>
       </section>
