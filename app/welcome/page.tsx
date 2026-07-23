@@ -54,46 +54,102 @@ function ChatPill() {
 // Animated app demo: a real niche question, and Buddy's REAL answer (queried
 // from the live system, lightly condensed) plus the actual video-bank card the
 // app serves for ears. Pure CSS loop, see gbDemoQ/T/A in globals.css.
+const FFD = 'var(--font-display)';
+const miniChip = (label: string, tapped?: boolean) => (
+  <div key={label} className={tapped ? 'gbTapChip' : undefined} style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 999, padding: '7px 6px', fontFamily: FFD, fontWeight: 800, fontSize: 11.5, color: INK, textAlign: 'center' }}>{label}</div>
+);
+const videoCard = (
+  <div style={{ border: `2px solid ${INK}`, borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ background: INK, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ width: 30, height: 30, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l12-7-12-7z" fill={INK} /></svg>
+      </span>
+    </div>
+    <div style={{ padding: '6px 9px', fontSize: 10.5, fontWeight: 700, color: MUT, lineHeight: 1.35 }}>
+      How to scissor your dog&apos;s ears · Grooming By Rudy · plays from 0:23
+    </div>
+  </div>
+);
+
+// The real app flow, replicated: intake -> building -> plan -> step detail
+// (with the real video-bank card) -> asking about the step. 26s CSS loop.
 function ChatDemo() {
+  const planRow = (n: number, t: string, tapped?: boolean) => (
+    <div key={n} className={tapped ? 'gbTapRow' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: `2px solid ${INK}`, borderRadius: 12, padding: '7px 9px' }}>
+      <span style={{ flex: 'none', width: 20, height: 20, borderRadius: '50%', background: 'var(--primary)', border: `2px solid ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FFD, fontWeight: 800, fontSize: 10.5 }}>{n}</span>
+      <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 11.5, color: INK, flex: 1 }}>{t}</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
+    </div>
+  );
   return (
     <PhoneFrame tall>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: MUT }}>Willow · Doodle · medium teddy</div>
-      {/* phase 1: the plan */}
-      <div className="gbDemoP" style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, padding: '10px 12px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, color: INK }}>Step 6 of 9 · Tidy and clean the ears</div>
-        <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, color: INK, marginTop: 5 }}>
-          1. Pluck loose inner-ear hair, a little at a time.<br />
-          2. Wipe with ear cleaner on a cotton pad.<br />
-          3. Scissor the edges to follow the ear&apos;s shape.
-        </div>
-      </div>
-      {/* phase 2: a question about this step */}
-      <div className="gbDemoQ" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ maxWidth: '85%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 12.5, fontWeight: 700, color: INK }}>
-          How do I tidy the edges without nicking the leather?
-        </div>
-      </div>
-      <div className="gbDemoT" style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '2px 6px' }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite' }} />
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .2s' }} />
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .4s' }} />
-      </div>
-      {/* phase 3: Buddy's real answer + the real video card */}
-      <div className="gbDemoA" style={{ maxWidth: '94%' }}>
-        <div style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, color: INK }}>
-          Comb the ear hair straight down and hold the ear so you can <b>feel</b>
-          {' '}where the leather ends, that&apos;s your safety line. Thinning shears,
-          parallel to the edge, small bites from base to tip, angled away from
-          the leather so any slip goes into air, not skin.
-        </div>
-        <div style={{ marginTop: 8, border: `2px solid ${INK}`, borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-          <div style={{ background: INK, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ width: 32, height: 32, borderRadius: '50%', background: CLAY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l12-7-12-7z" fill={INK} /></svg>
-            </span>
+      <div style={{ position: 'relative', flex: 1 }}>
+        {/* 1 · intake */}
+        <div className="gbScr gbScr1">
+          <div style={{ background: 'var(--primary)', border: `2px solid ${INK}`, borderRadius: 12, padding: '8px 11px', fontFamily: FFD, fontWeight: 800, fontSize: 13, color: INK }}>Who&apos;s on the table?</div>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK }}>Breed</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+            {miniChip('Goldendoodle', true)}
+            {miniChip('Poodle')}
+            {miniChip('Shih Tzu')}
+            {miniChip('Maltese')}
+            {miniChip('Schnauzer')}
+            {miniChip('Other / mixed')}
           </div>
-          <div style={{ padding: '7px 10px', fontSize: 11.5, fontWeight: 700, color: MUT, lineHeight: 1.4 }}>
-            How to scissor your dog&apos;s ears · Grooming By Rudy · plays from 0:23
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12, color: INK, marginTop: 4 }}>How&apos;s the coat?</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+            {miniChip('A few tangles')}
+            {miniChip('Brushed out')}
+          </div>
+        </div>
+        {/* 2 · building the plan */}
+        <div className="gbScr gbScr2" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/art/Smileydogfunny.jpg" alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${INK}` }} />
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14, color: INK }}>Building Willow&apos;s plan…</div>
+          <div style={{ display: 'flex', gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .2s' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'gbType 1.2s infinite .4s' }} />
+          </div>
+        </div>
+        {/* 3 · the plan, tapping a step */}
+        <div className="gbScr gbScr3">
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: MUT }}>Willow · Goldendoodle · medium teddy</div>
+          {planRow(1, 'Nails, pads, and sanitary')}
+          {planRow(2, 'Bath and blow-dry')}
+          {planRow(3, 'Full brush-out and de-mat')}
+          {planRow(4, 'Clipper the body')}
+          {planRow(5, 'Tidy and clean the ears', true)}
+          {planRow(6, 'Scissor the face')}
+        </div>
+        {/* 4 · step detail with the video */}
+        <div className="gbScr gbScr4">
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 14.5, color: INK }}>Tidy and clean the ears</div>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 11, color: MUT, marginTop: -5 }}>Step 5 of 9</div>
+          <div style={{ background: '#fff', border: `2px solid ${INK}`, borderRadius: 12, padding: '8px 10px', fontSize: 11.5, fontWeight: 600, lineHeight: 1.45, color: INK }}>
+            1. Pluck loose inner-ear hair, a little at a time.<br />
+            2. Wipe with ear cleaner on a cotton pad.<br />
+            3. Scissor the edges to follow the ear&apos;s shape.
+          </div>
+          <div style={{ background: 'var(--primary-soft)', border: `2px solid ${INK}`, borderRadius: 10, padding: '6px 9px', fontSize: 10.5, fontWeight: 700, color: INK }}>
+            Pro tip: work with the ear resting flat in your palm, never mid-air.
+          </div>
+          {videoCard}
+        </div>
+        {/* 5 · asking about the step */}
+        <div className="gbScr gbScr5">
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 12.5, color: MUT }}>Tidy and clean the ears · Ask Buddy</div>
+          <div className="gbS5Q" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ maxWidth: '88%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 12, fontWeight: 700, color: INK }}>
+              How do I tidy the edges without nicking the leather?
+            </div>
+          </div>
+          <div className="gbS5A" style={{ maxWidth: '94%', background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 12, fontWeight: 600, lineHeight: 1.5, color: INK }}>
+            Comb the ear hair straight down and hold the ear so you can <b>feel</b>
+            {' '}where the leather ends, that&apos;s your safety line. Thinning
+            shears, parallel to the edge, small bites from base to tip, angled
+            away from the leather so any slip goes into air, not skin.
           </div>
         </div>
       </div>

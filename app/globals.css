@@ -73,37 +73,33 @@ html, body {
 .gbFaq .gbFaqMinus, .gbFaq[open] .gbFaqPlus { display: none; }
 .gbFaq[open] .gbFaqMinus { display: block; }
 
-/* app demo loop (16s): plan card -> step question -> Buddy thinks -> answer */
-.gbDemoP { animation: gbDemoP 16s ease infinite; }
-.gbDemoQ { animation: gbDemoQ 16s ease infinite; }
-.gbDemoT { animation: gbDemoT 16s ease infinite; }
-.gbDemoA { animation: gbDemoA 16s ease infinite; }
-@keyframes gbDemoP {
-  0%, 2% { opacity: 0; transform: scale(0.95); }
-  5% { opacity: 1; transform: scale(1); }
-  93% { opacity: 1; }
-  98%, 100% { opacity: 0; }
-}
-@keyframes gbDemoQ {
-  0%, 25% { opacity: 0; transform: scale(0.92); }
-  28% { opacity: 1; transform: scale(1); }
-  93% { opacity: 1; }
-  98%, 100% { opacity: 0; }
-}
-@keyframes gbDemoT {
-  0%, 31% { opacity: 0; }
-  34%, 44% { opacity: 1; }
-  48%, 100% { opacity: 0; }
-}
-@keyframes gbDemoA {
-  0%, 46% { opacity: 0; transform: scale(0.95); }
-  50% { opacity: 1; transform: scale(1); }
-  93% { opacity: 1; }
-  98%, 100% { opacity: 0; }
-}
+/* app walkthrough demo (26s loop): intake -> building -> plan -> step detail
+   with video -> ask about it. Screens are absolutely stacked in the phone. */
+.gbScr { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column; gap: 9px; pointer-events: none; }
+.gbScr1 { animation: gbScr1 26s ease infinite; }
+.gbScr2 { animation: gbScr2 26s ease infinite; }
+.gbScr3 { animation: gbScr3 26s ease infinite; }
+.gbScr4 { animation: gbScr4 26s ease infinite; }
+.gbScr5 { animation: gbScr5 26s ease infinite; }
+@keyframes gbScr1 { 0%, 2% { opacity: 0; } 4%, 14% { opacity: 1; } 17%, 100% { opacity: 0; } }
+@keyframes gbScr2 { 0%, 15% { opacity: 0; } 18%, 25% { opacity: 1; } 28%, 100% { opacity: 0; } }
+@keyframes gbScr3 { 0%, 26% { opacity: 0; } 29%, 41% { opacity: 1; } 44%, 100% { opacity: 0; } }
+@keyframes gbScr4 { 0%, 42% { opacity: 0; } 45%, 68% { opacity: 1; } 71%, 100% { opacity: 0; } }
+@keyframes gbScr5 { 0%, 69% { opacity: 0; } 72%, 95% { opacity: 1; } 99%, 100% { opacity: 0; } }
+/* simulated taps: a chip and a plan row highlight mid-screen */
+.gbTapChip { animation: gbTapChip 26s ease infinite; }
+@keyframes gbTapChip { 0%, 7% { background: #fff; } 10%, 100% { background: var(--primary); } }
+.gbTapRow { animation: gbTapRow 26s ease infinite; }
+@keyframes gbTapRow { 0%, 36% { background: #fff; } 39%, 100% { background: var(--primary-soft); } }
+/* inside screen 5: question then answer */
+.gbS5Q { opacity: 0; animation: gbS5Q 26s ease infinite; }
+@keyframes gbS5Q { 0%, 73% { opacity: 0; transform: scale(0.94); } 76%, 100% { opacity: 1; transform: scale(1); } }
+.gbS5A { opacity: 0; animation: gbS5A 26s ease infinite; }
+@keyframes gbS5A { 0%, 80% { opacity: 0; transform: scale(0.96); } 84%, 100% { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  .gbDemoP, .gbDemoQ, .gbDemoT, .gbDemoA { animation: none; }
-  .gbDemoT { display: none; }
+  .gbScr, .gbTapChip, .gbTapRow, .gbS5Q, .gbS5A { animation: none; }
+  .gbScr4 { opacity: 1; }
+  .gbS5Q, .gbS5A { opacity: 1; }
 }
 
 /* blinking caret in the marketing hero chat pill */
