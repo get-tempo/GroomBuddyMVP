@@ -6,7 +6,7 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type
 import Markdown from 'react-markdown';
 import { GROOM_STEPS, type GroomStep } from '@/data/groom-steps';
 import { findStepVideo } from '@/lib/videoBank';
-import { logEvent, getSessionId, getDeviceId, initAnalytics } from '@/lib/analytics';
+import { logEvent, getSessionId, getDeviceId, initAnalytics, identifyEmail } from '@/lib/analytics';
 import { parsePlanSteps } from '@/lib/planSteps';
 import { BREED_INTAKE, COAT_TYPES, COAT_TYPE_QUESTION, resolveTypedBreed, type IntakeSet } from '@/data/breed-intake';
 
@@ -201,21 +201,15 @@ export default function BuddyApp() {
   };
   useEffect(() => { setGroomChatStarted(false); setGroomChatOpen(false); setGroomAsk(null); }, [groomId]);
 
-  // Pilot access gate. null = still checking. When the deploy sets ACCESS_CODE,
-  // /api/access reports required:true and we show the Gate until the student
-  // enters the code (stored in localStorage). Open (no gate) when unset.
+  // Email gate: the whole "signup" is one email, stored locally and sent with
+  // every model call (x-user-email). null = still checking (SSR-safe).
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   useEffect(() => {
-    let cancel = false;
-    fetch('/api/access')
-      .then((r) => r.json())
-      .then(({ required }: { required?: boolean }) => {
-        if (cancel) return;
-        setUnlocked(required ? !!localStorage.getItem('gb_access') : true);
-      })
-      // Fail open in the UI on a network hiccup; /api/chat still enforces server-side.
-      .catch(() => { if (!cancel) setUnlocked(true); });
-    return () => { cancel = true; };
+    try {
+      setUnlocked(!!localStorage.getItem('gb_email'));
+    } catch {
+      setUnlocked(true); // storage blocked: fail open, server still enforces
+    }
   }, []);
 
   // ---- groom + chat persistence (no accounts): device-local LISTS ----
@@ -398,7 +392,7 @@ export default function BuddyApp() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-access-code': localStorage.getItem('gb_access') ?? '',
+          'x-user-email': localStorage.getItem('gb_email') ?? '',
           'x-device-id': getDeviceId(),
         },
         body: JSON.stringify(intake),
@@ -579,28 +573,30 @@ export default function BuddyApp() {
 }
 
 // ============================================================
-// Access gate — shown only when the deploy sets ACCESS_CODE. One shared class
-// code unlocks the app and is stored locally + sent with every chat request.
+// Email gate — the whole "signup": one email, no password. Stored locally,
+// sent with every model call, captured server-side as a lead.
 // ============================================================
 function Gate({ onUnlock }: { onUnlock: () => void }) {
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState('');
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    const c = code.trim();
-    if (!c || busy) return;
+    const e = email.trim().toLowerCase();
+    if (!e || busy) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) { setErr(true); return; }
     setBusy(true);
     setErr(false);
     try {
       const r = await fetch('/api/access', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: c }),
+        body: JSON.stringify({ email: e, sessionId: getSessionId() }),
       });
       const { ok } = (await r.json()) as { ok?: boolean };
       if (ok) {
-        localStorage.setItem('gb_access', c);
+        localStorage.setItem('gb_email', e);
+        identifyEmail(e);
         onUnlock();
       } else {
         setErr(true);
@@ -618,18 +614,20 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={MASCOT} alt="Buddy" style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '5px solid var(--ink)', background: '#fff' }} />
       </div>
-      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, marginTop: 18, textAlign: 'center' }}>Enter your class code</div>
-      <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 14, color: 'var(--muted-2)', marginTop: 6, textAlign: 'center' }}>Your instructor gave you this.</div>
+      <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 24, color: INK, marginTop: 18, textAlign: 'center' }}>What&apos;s your email?</div>
+      <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 14, color: 'var(--muted-2)', marginTop: 6, textAlign: 'center' }}>That&apos;s the whole signup. No password, no spam.</div>
       <input
-        value={code}
-        onChange={(e) => { setCode(e.target.value); setErr(false); }}
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); setErr(false); }}
         onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-        placeholder="class code"
+        placeholder="you@example.com"
+        type="email"
+        inputMode="email"
         autoCapitalize="none"
         autoCorrect="off"
         style={{ width: '100%', marginTop: 22, background: '#fff', border: err ? `2.5px solid var(--coral)` : BORDER, borderRadius: 16, padding: '15px 16px', fontFamily: FFB, fontWeight: 700, fontSize: 17, color: INK, boxShadow: HARD, outline: 'none', textAlign: 'center' }}
       />
-      {err && <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--coral)', marginTop: 10 }}>That code didn&apos;t work. Check with your instructor.</div>}
+      {err && <div style={{ fontFamily: FFB, fontWeight: 700, fontSize: 13, color: 'var(--coral)', marginTop: 10 }}>That doesn&apos;t look like an email. Give it another go.</div>}
       <button
         onClick={submit}
         disabled={busy}
@@ -1366,10 +1364,10 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
       new DefaultChatTransport({
         api: '/api/chat',
         body: { context },
-        // Pilot access code (if the deploy set one). Read fresh per request so a
+        // The gate email. Read fresh per request so a
         // student who unlocks mid-session doesn't need a reload.
         headers: () => ({
-          'x-access-code': localStorage.getItem('gb_access') ?? '',
+          'x-user-email': localStorage.getItem('gb_email') ?? '',
           'x-device-id': getDeviceId(),
         }),
       }),
@@ -1483,7 +1481,7 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
       fd.append('audio', blob, blob.type.includes('mp4') ? 'voice.mp4' : 'voice.webm');
       const res = await fetch('/api/transcribe', {
         method: 'POST',
-        headers: { 'x-access-code': localStorage.getItem('gb_access') ?? '', 'x-device-id': getDeviceId() },
+        headers: { 'x-user-email': localStorage.getItem('gb_email') ?? '', 'x-device-id': getDeviceId() },
         body: fd,
       });
       const j = (await res.json().catch(() => ({}))) as { text?: string; error?: string };

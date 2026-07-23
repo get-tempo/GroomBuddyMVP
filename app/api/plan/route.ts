@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { MODEL, PLAN_MODEL } from '@/lib/model';
 import { PLAN_SYSTEM } from '@/lib/prompt';
 import { retrieveCurriculum } from '@/lib/rag';
-import { accessRequired, codeOk } from '@/lib/access';
+import { emailOk } from '@/lib/access';
 import { allowModelCall } from '@/lib/rateLimit';
 
 // Generate a full-groom plan for ONE dog (Guided mode). The school's canonical
@@ -32,8 +32,8 @@ function badRequest(message: string) {
 
 export async function POST(req: Request) {
   // Same access gate as /api/chat — this is a model call, so protect the spend.
-  if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
-    return new Response(JSON.stringify({ error: 'A valid access code is required.' }), {
+  if (!emailOk(req.headers.get('x-user-email'))) {
+    return new Response(JSON.stringify({ error: 'An email is required. Refresh and enter your email to continue.' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });

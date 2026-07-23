@@ -1,23 +1,34 @@
-import { accessRequired, codeOk } from '@/lib/access';
+import { emailOk, normalizeEmail } from '@/lib/access';
+import { supabaseAdmin, supabaseConfigured } from '@/lib/supabase';
 
-// GET  -> { required: boolean }   (lets the client decide whether to show the gate)
-// POST { code } -> { ok: boolean } (validates a code entered at the gate)
-//
-// The real enforcement is in /api/chat (which checks the x-access-code header on
-// every model call). This route is just for a clean unlock UX.
+// The email gate. GET tells the client the gate is on (it always is now).
+// POST validates the email, records it as a lead (events table,
+// type 'email_capture'), and unlocks. Enforcement on model spend lives in
+// /api/chat, /api/plan and /api/transcribe via the x-user-email header.
 
 export async function GET() {
-  return Response.json({ required: accessRequired() });
+  return Response.json({ required: true });
 }
 
 export async function POST(req: Request) {
-  if (!accessRequired()) return Response.json({ ok: true });
-  let code = '';
+  let body: { email?: string; sessionId?: string };
   try {
-    const body = (await req.json()) as { code?: unknown };
-    if (typeof body?.code === 'string') code = body.code;
+    body = (await req.json()) as { email?: string; sessionId?: string };
   } catch {
-    // fall through with empty code -> not ok
+    return Response.json({ ok: false }, { status: 400 });
   }
-  return Response.json({ ok: codeOk(code) });
+  const raw = typeof body.email === 'string' ? body.email : '';
+  if (!emailOk(raw)) return Response.json({ ok: false });
+
+  const email = normalizeEmail(raw);
+  // Lead capture: best-effort, never blocks the unlock.
+  if (supabaseConfigured()) {
+    try {
+      const sid = typeof body.sessionId === 'string' && body.sessionId ? body.sessionId.slice(0, 64) : 'anon';
+      await supabaseAdmin().from('events').insert({ session_id: sid, type: 'email_capture', payload: { email } });
+    } catch (e) {
+      console.error('email capture failed:', e);
+    }
+  }
+  return Response.json({ ok: true });
 }

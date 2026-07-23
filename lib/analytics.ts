@@ -71,6 +71,14 @@ export function getDeviceId(): string {
   }
 }
 
+// Attach the gate email to the PostHog person (device id stays the distinct
+// id; the email makes the person recognizable in dashboards).
+export function identifyEmail(email: string): void {
+  try {
+    if (phReady) posthog.setPersonProperties({ email });
+  } catch { /* analytics must never break the app */ }
+}
+
 export function logEvent(type: string, payload: Record<string, unknown> = {}): void {
   try {
     if (phReady) posthog.capture(type, payload);

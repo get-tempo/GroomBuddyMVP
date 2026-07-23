@@ -16,11 +16,11 @@ export const metadata: Metadata = {
 };
 
 const FAQS = [
-  { q: 'Is it really free?', a: 'Yes, everything, while we are in pilot. When paid plans arrive (around $19 a month), early users get a founding rate. No card, no signup today.' },
+  { q: 'Is it really free?', a: 'Yes, everything, while we are in pilot. When paid plans arrive (around $19 a month), early users get a founding rate. No card, no password, just your email.' },
   { q: 'Does it replace my instructor?', a: 'No, and it will tell you so itself. Buddy coaches between instructors. Tight matting, a stressed dog, or anything medical gets one answer: stop and get a person.' },
   { q: 'Why not just use ChatGPT?', a: 'A general chatbot has no method. Buddy is grounded in a licensed grooming school’s curriculum, knows the dog you’re working on, and answers the way an instructor teaches.' },
   { q: 'Can it see my work?', a: 'Send a photo mid-groom and Buddy tells you what to fix, located on the dog, judged against the look you were going for.' },
-  { q: 'What do I need to install?', a: 'Nothing. It runs in your phone’s browser. Open the link, add it to your home screen if you want, and start a groom.' },
+  { q: 'What do I need to install?', a: 'Nothing. It runs in your phone’s browser. Drop in your email, add it to your home screen if you want, and start a groom.' },
   { q: 'Who built this?', a: 'A tiny team working alongside a state-licensed professional grooming school, whose students are piloting it right now. When an answer misses, you can tell us from inside the app.' },
 ];
 
@@ -42,7 +42,7 @@ export default function Welcome() {
           <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '28px 60px', justifyContent: 'space-between' }}>
             <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
               <div style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '7px 15px', fontWeight: 800, fontSize: 13.5, marginBottom: 18 }}>
-                Free for a limited time · No signup
+                Free for a limited time · No password, just your email
               </div>
               <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(36px, 4.8vw, 56px)', lineHeight: 1.1, color: LIGHT, margin: 0 }}>
                 A grooming coach in your pocket, mid-groom.
@@ -193,7 +193,7 @@ export default function Welcome() {
             Free while it&apos;s in pilot.
           </h2>
           <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
-            The whole thing, no signup. When paid plans arrive they&apos;ll be around
+            The whole thing, no password, just your email. When paid plans arrive they&apos;ll be around
             $19 a month for individuals, and early users will get a founding rate.
             This is an early product: some answers will miss, and when they do you
             can tell the person who built it directly from inside the app.

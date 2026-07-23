@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { SYSTEM_PROMPT } from '@/lib/prompt';
 import { findReferenceImages } from '@/lib/imageBank';
 import { retrieveCurriculum } from '@/lib/rag';
-import { accessRequired, codeOk } from '@/lib/access';
+import { emailOk } from '@/lib/access';
 import { allowModelCall } from '@/lib/rateLimit';
 
 // Allow streamed responses up to 30s (Vercel function default is short).
@@ -49,8 +49,8 @@ export async function POST(req: Request) {
   // Access gate: when ACCESS_CODE is configured, every model call must carry a
   // valid x-access-code header. This is what actually protects API spend — a
   // leaked link with no code can't reach the model. No-op when ACCESS_CODE unset.
-  if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
-    return new Response(JSON.stringify({ error: 'A valid access code is required.' }), {
+  if (!emailOk(req.headers.get('x-user-email'))) {
+    return new Response(JSON.stringify({ error: 'An email is required. Refresh and enter your email to continue.' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });

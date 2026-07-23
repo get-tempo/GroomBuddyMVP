@@ -1,4 +1,4 @@
-import { accessRequired, codeOk } from '@/lib/access';
+import { emailOk } from '@/lib/access';
 import { allowModelCall } from '@/lib/rateLimit';
 
 // Voice input: the client records a short clip (MediaRecorder) and posts it
@@ -31,8 +31,8 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(req: Request) {
-  if (accessRequired() && !codeOk(req.headers.get('x-access-code'))) {
-    return jsonError('A valid access code is required.', 401);
+  if (!emailOk(req.headers.get('x-user-email'))) {
+    return jsonError('An email is required. Refresh and enter your email to continue.', 401);
   }
   const limit = await allowModelCall(req, 'transcribe');
   if (!limit.ok) return jsonError(limit.message, 429);
