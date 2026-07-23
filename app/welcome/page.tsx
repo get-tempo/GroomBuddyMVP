@@ -55,7 +55,7 @@ function ChatPill() {
 // Pure CSS loop (12s), see gbDemoQ/T/A in globals.css.
 function HeroPhoneDemo() {
   return (
-    <PhoneFrame>
+    <PhoneFrame tall>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: MUT }}>Bella · Goldendoodle · nails</div>
       <div className="gbDemoQ" style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <div style={{ maxWidth: '85%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 13, fontWeight: 700, color: INK }}>

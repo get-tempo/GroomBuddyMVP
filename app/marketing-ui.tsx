@@ -43,10 +43,11 @@ export function CTA({ href, children, tone }: { href: string; children: React.Re
 
 // iPhone chrome around the product-demo panels: dark bezel, Dynamic Island,
 // status bar, home indicator. Content stays in the sticker design system.
-export function PhoneFrame({ children }: { children: React.ReactNode }) {
+export function PhoneFrame({ children, tall }: { children: React.ReactNode; tall?: boolean }) {
   return (
     <div style={{ width: 336, maxWidth: '94vw', background: 'var(--ink)', borderRadius: 46, padding: 10, boxShadow: '7px 7px 0 rgba(43,33,26,0.35)', border: '2px solid #171009' }}>
-      <div style={{ background: 'var(--cream)', borderRadius: 36, overflow: 'hidden', position: 'relative' }}>
+      {/* tall: real phone proportions (~2:1) even when the content is short */}
+      <div style={{ background: 'var(--cream)', borderRadius: 36, overflow: 'hidden', position: 'relative', minHeight: tall ? 560 : undefined, display: tall ? 'flex' : undefined, flexDirection: tall ? 'column' : undefined }}>
         {/* status bar + dynamic island */}
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 22px 2px' }}>
           <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 13.5, letterSpacing: 0.2 }}>9:41</span>
@@ -57,11 +58,11 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
             <svg width="21" height="11" viewBox="0 0 21 11"><rect x="0.7" y="0.7" width="16.5" height="9.6" rx="2.6" fill="none" stroke="var(--ink)" strokeWidth="1.3" /><rect x="2.4" y="2.4" width="10.5" height="6.2" rx="1.4" fill="var(--ink)" /><path d="M19 3.6v3.8a2 2 0 000-3.8z" fill="var(--ink)" /></svg>
           </span>
         </div>
-        <div style={{ padding: '10px 14px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '10px 14px 12px', display: 'flex', flexDirection: 'column', gap: 12, flex: tall ? 1 : undefined }}>
           {children}
         </div>
         {/* home indicator */}
-        <div style={{ width: 112, height: 4.5, background: 'var(--ink)', borderRadius: 999, margin: '0 auto 7px', opacity: 0.9 }} />
+        <div style={{ flex: 'none', width: 112, height: 4.5, background: 'var(--ink)', borderRadius: 999, margin: '0 auto 7px', opacity: 0.9 }} />
       </div>
     </div>
   );
