@@ -256,14 +256,10 @@ export default function Welcome() {
         </div>
         <div style={{ flex: '1 1 380px', maxWidth: 560 }}>
           <p style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
-            The hardest part of learning to groom is the moment nobody is standing
-            next to you. Buddy is for everyone still in that stretch: students
-            between instructor check-ins, new groomers building speed and
-            confidence, and solo mobile groomers with no senior groomer in the
-            van. Or just anyone with a question, because nobody remembers every
-            breed, and even twenty years in, some dogs still send you to the
-            book. It saves the question for the moment it matters, on the dog it
-            matters for.
+            The hardest part of grooming is the moment nobody is standing next to
+            you. Buddy is for everyone in that stretch: students between
+            check-ins, new groomers building speed, mobile groomers working solo.
+            Or anyone with a question, because nobody remembers every breed.
           </p>
           <div style={{ margin: '14px 0 0', color: MUT }}>&mdash;</div>
           <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '6px 0 0' }}>
