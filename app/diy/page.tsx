@@ -31,7 +31,7 @@ export default function Diy() {
       <header style={{ position: 'relative' }}>
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
+            <h1 style={{ ...SERIF, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
               Groom your own dog, with a pro-level coach.
             </h1>
             <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
@@ -55,7 +55,7 @@ export default function Diy() {
             <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(470px, 98%)', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
-            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
+            <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
               The salon bill keeps coming.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
@@ -74,13 +74,13 @@ export default function Diy() {
 
       {/* why you're here: bento, editorial-recolored */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px', maxWidth: 760 }}>
+        <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px', maxWidth: 760 }}>
           You can do this yourself. You just need someone to ask.
         </h2>
         <div className="gbBento">
           <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(34px, 4.5vw, 46px)', lineHeight: 1, whiteSpace: 'nowrap', color: DEEP }}>
+              <div style={{ ...SERIF, fontSize: 'clamp(34px, 4.5vw, 46px)', lineHeight: 1, whiteSpace: 'nowrap', color: DEEP }}>
                 $60<span style={{ fontSize: '0.55em' }}> to </span>$120
               </div>
               <div style={{ flex: '1 1 240px', fontSize: 14.5, fontWeight: 600, lineHeight: 1.55, color: DEEP, opacity: 0.85 }}>
@@ -128,7 +128,7 @@ export default function Diy() {
 
       {/* why trust it: four centered icon columns */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 0' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
+        <h2 style={{ ...SERIF, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
           A real grooming education, in your pocket.
         </h2>
       </section>
@@ -150,7 +150,7 @@ export default function Diy() {
       {/* how it works: the zigzag with doodle blobs, on an inset rounded panel */}
       <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '56px 16px 60px' }}>
         <div style={{ background: LIGHT, borderRadius: 44, padding: '52px clamp(24px, 5vw, 64px) 56px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 34px' }}>How it works</h2>
+        <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 34px' }}>How it works</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
           <EStepRow n={1} title="Tell Buddy about your dog" doodle="paw" tint={CREAM}>
             Breed or mix, how matted the coat is, and the look you want. Twenty
@@ -173,7 +173,7 @@ export default function Diy() {
       <section id="safety" style={{ background: TINT, padding: '64px 26px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '30px 60px' }}>
           <div style={{ flex: '1 1 380px', maxWidth: 620 }}>
-            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
+            <h2 style={{ ...SERIF, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
               Your dog&apos;s safety outranks the haircut
             </h2>
             <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
@@ -186,7 +186,7 @@ export default function Diy() {
           <div style={{ flex: '1 1 300px', maxWidth: 380, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 16, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span aria-hidden style={{ flex: 'none', width: 30, height: 30, color: GOLD }}>{ICONS.shield}</span>
-              <span style={{ ...SERIF, fontWeight: 600, fontSize: 19, color: DEEP }}>Buddy&apos;s hard rules</span>
+              <span style={{ ...SERIF, fontSize: 19, color: DEEP }}>Buddy&apos;s hard rules</span>
             </div>
             {[
               'Tight matting? See a pro.',
@@ -206,7 +206,7 @@ export default function Diy() {
       {/* pricing: cream, honest, sleeper */}
       <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 64px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 60px' }}>
         <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
+          <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
             Free while it&apos;s in pilot.
           </h2>
           <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>

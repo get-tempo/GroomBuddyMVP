@@ -1,19 +1,20 @@
 import Link from 'next/link';
-import { Fraunces } from 'next/font/google';
+import { DM_Serif_Display } from 'next/font/google';
 import { PhoneFrame, DOODLES } from './marketing-ui';
 
 // The editorial design system shared by the marketing pages (/welcome, /diy):
 // brand yellow/espresso/cream with the tonal rule (deep text on bright blocks,
-// light text on deep blocks), Fraunces serif display, chat pill on the hero
-// seam, and the animated app-walkthrough demo.
+// light text on deep blocks), DM Serif Display for headlines, chat pill on
+// the hero seam, and the animated app-walkthrough demo.
 
-const fraunces = Fraunces({ subsets: ['latin'], axes: ['opsz', 'SOFT', 'WONK'] });
-// Hard-pin the variation axes: Fraunces' auto optical sizing swaps in
-// display-cut glyphs (the curly descender 'f') at large sizes. Vetoed.
+// DM Serif Display replaced Fraunces: Fraunces draws its lowercase f and j
+// with quirky descenders BY DESIGN (no axis setting removes them), and Julian
+// vetoed those glyphs three times. DM Serif has the same warm display weight
+// with conventional letterforms. Single weight (400).
+const dmSerif = DM_Serif_Display({ subsets: ['latin'], weight: '400' });
 export const SERIF: React.CSSProperties = {
-  fontFamily: fraunces.style.fontFamily,
-  fontOpticalSizing: 'none',
-  fontVariationSettings: "'opsz' 14, 'SOFT' 0, 'WONK' 0",
+  fontFamily: dmSerif.style.fontFamily,
+  fontWeight: 400,
 };
 
 // palette
@@ -38,7 +39,7 @@ export function Nav({ links }: { links: { href: string; label: string }[] }) {
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/art/logo-buddy.png" alt="" style={{ width: 40, height: 'auto', display: 'block' }} />
-        <span style={{ ...SERIF, fontWeight: 600, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
+        <span style={{ ...SERIF, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
         {links.map(l => <NavLink key={l.href} href={l.href}>{l.label}</NavLink>)}
@@ -84,7 +85,7 @@ export function EStepRow({ n, title, doodle, tint, flip, children }: {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 36px', flexDirection: flip ? 'row-reverse' : 'row', justifyContent: 'space-between' }}>
       <div style={{ flex: '1 1 340px', maxWidth: 620, display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: '50%', background: CLAY, border: `2px solid ${DEEP}`, boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...SERIF, fontWeight: 600, fontSize: 26, color: DEEP }}>
+        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: '50%', background: CLAY, border: `2px solid ${DEEP}`, boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...SERIF, fontSize: 26, color: DEEP }}>
           {n}
         </div>
         <div>

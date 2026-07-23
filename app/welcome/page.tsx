@@ -40,7 +40,7 @@ export default function Welcome() {
       <header style={{ position: 'relative' }}>
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
+            <h1 style={{ ...SERIF, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
               A coach in your pocket, mid-groom.
             </h1>
             <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
@@ -62,7 +62,7 @@ export default function Welcome() {
             <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(470px, 98%)', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
-            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
+            <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
               New breed on the table? Skip the trip to the book.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
@@ -83,7 +83,7 @@ export default function Welcome() {
       {/* who is Buddy for */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px', display: 'flex', flexWrap: 'wrap', gap: '28px 70px', alignItems: 'flex-start' }}>
         <div style={{ flex: '1 1 300px', maxWidth: 420 }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(30px, 3.8vw, 42px)', color: GOLD, margin: '0 0 18px' }}>Who is Buddy for?</h2>
+          <h2 style={{ ...SERIF, fontSize: 'clamp(30px, 3.8vw, 42px)', color: GOLD, margin: '0 0 18px' }}>Who is Buddy for?</h2>
           <ul style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 8, fontWeight: 700, fontSize: 16, color: INK }}>
             <li>Grooming students</li>
             <li>New groomers, first two years</li>
@@ -99,8 +99,7 @@ export default function Welcome() {
             check-ins, new groomers building speed, mobile groomers working solo.
             Or anyone with a question, because nobody remembers every breed.
           </p>
-          <div style={{ margin: '14px 0 0', color: MUT }}>&mdash;</div>
-          <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '6px 0 0' }}>
+          <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '16px 0 0' }}>
             Buddy was made specifically for the grooming table.
           </p>
         </div>
@@ -108,7 +107,7 @@ export default function Welcome() {
 
       {/* what Buddy is: heading + four centered icon columns */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 0' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
+        <h2 style={{ ...SERIF, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
           Helping grooming students and new groomers work with confidence.
         </h2>
       </section>
@@ -130,7 +129,7 @@ export default function Welcome() {
       {/* how it works: steps left, the animated app demo right, inset panel */}
       <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '56px 16px 60px' }}>
         <div style={{ background: LIGHT, borderRadius: 44, padding: '52px clamp(24px, 5vw, 64px) 56px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 26px' }}>How it works</h2>
+        <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 26px' }}>How it works</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '44px 70px', alignItems: 'center' }}>
           <div style={{ flex: '1 1 380px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 30 }}>
             {[
@@ -139,7 +138,7 @@ export default function Welcome() {
               { n: '3', t: 'Ask as you go', d: 'Every step has its own chat. Send a photo and Buddy tells you what to fix, located on the dog. Voice input works with slippery hands.' },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                <div style={{ ...SERIF, fontWeight: 400, fontSize: 46, lineHeight: 1, color: GOLD, flex: 'none', width: 40 }}>{s.n}</div>
+                <div style={{ ...SERIF, fontSize: 46, lineHeight: 1, color: GOLD, flex: 'none', width: 40 }}>{s.n}</div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 18, margin: '0 0 6px', color: DEEP }}>{s.t}</div>
                   <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.6, color: MUT }}>{s.d}</div>
@@ -157,7 +156,7 @@ export default function Welcome() {
       {/* FAQ: collapsible accordion on its own tint band */}
       <section id="faq" style={{ background: TINT, padding: '64px 26px 56px', ['--gbfInk' as never]: DEEP, ['--gbfMut' as never]: MUT, ['--gbfAccent' as never]: CLAY } as React.CSSProperties}>
         <div style={{ maxWidth: 880, margin: '0 auto' }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: GOLD, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
+          <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: GOLD, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
           {FAQS.map((f, i) => (
             <details key={f.q} className="gbFaq" open={i === 0}>
               <summary>
@@ -176,7 +175,7 @@ export default function Welcome() {
       {/* pricing: cream, flat and honest, sleeping doodle keeping it calm */}
       <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 64px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 60px' }}>
         <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
+          <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
             Free while it&apos;s in pilot.
           </h2>
           <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
@@ -201,7 +200,7 @@ export default function Welcome() {
       <section id="schools" style={{ background: TINT, padding: '64px 26px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '24px 60px' }}>
           <div style={{ flex: '1 1 420px', maxWidth: 700 }}>
-            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
+            <h2 style={{ ...SERIF, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
               For grooming schools: your curriculum, your method, your brand
             </h2>
             <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: '0 0 20px' }}>
