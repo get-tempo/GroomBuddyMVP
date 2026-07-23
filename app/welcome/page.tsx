@@ -186,31 +186,23 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* deep statement band */}
-      <section style={{ background: DEEP, color: LIGHT, padding: '64px 26px' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-          <h2 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px, 3.6vw, 42px)', lineHeight: 1.2, margin: 0, maxWidth: 760 }}>
-            The dog&apos;s safety outranks the haircut. Buddy will tell you when to
-            put the clippers down.
-          </h2>
+      {/* FAQ: collapsible accordion on its own tint band */}
+      <section id="faq" style={{ background: TINT, padding: '64px 26px 56px', ['--gbfInk' as never]: DEEP, ['--gbfMut' as never]: MUT, ['--gbfAccent' as never]: CLAY } as React.CSSProperties}>
+        <div style={{ maxWidth: 880, margin: '0 auto' }}>
+          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: GOLD, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
+          {FAQS.map((f, i) => (
+            <details key={f.q} className="gbFaq" open={i === 0}>
+              <summary>
+                <span>{f.q}</span>
+                <span className="gbFaqIcon">
+                  <svg className="gbFaqPlus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
+                  <svg className="gbFaqMinus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
+                </span>
+              </summary>
+              <p className="gbFaqA">{f.a}</p>
+            </details>
+          ))}
         </div>
-      </section>
-
-      {/* FAQ: collapsible accordion */}
-      <section id="faq" style={{ maxWidth: 880, margin: '0 auto', padding: '64px 26px 8px', ['--gbfInk' as never]: DEEP, ['--gbfMut' as never]: MUT, ['--gbfAccent' as never]: CLAY } as React.CSSProperties}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: GOLD, margin: '0 0 26px' }}>Let&apos;s answer a few questions:</h2>
-        {FAQS.map((f, i) => (
-          <details key={f.q} className="gbFaq" open={i === 0}>
-            <summary>
-              <span>{f.q}</span>
-              <span className="gbFaqIcon">
-                <svg className="gbFaqPlus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
-                <svg className="gbFaqMinus" width="14" height="14" viewBox="0 0 24 24" aria-hidden><path d="M5 12h14" stroke={INK} strokeWidth="3" strokeLinecap="round" /></svg>
-              </span>
-            </summary>
-            <p className="gbFaqA">{f.a}</p>
-          </details>
-        ))}
       </section>
 
       {/* pricing: cream, flat and honest, sleeping doodle keeping it calm */}
