@@ -3,7 +3,7 @@
 // and the style question only shows cuts a groomer would actually offer, so no
 // model call is needed at intake time.
 //
-// Grounded in the school's curriculum (LKN student manual):
+// Grounded in the school's curriculum (student manual):
 // - The manual's matting doctrine ("humanity before vanity": painful matting
 //   means a shave-down, not a style) is why the coat question comes BEFORE the
 //   style question: condition gates the cut.
