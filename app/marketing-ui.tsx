@@ -109,6 +109,106 @@ export function StickerCard({ icon, title, tint, tilt, children }: {
   );
 }
 
+// ---- decorative doodles (aria-hidden, scattered around sections) ----
+const dstroke = { fill: 'none', stroke: 'var(--ink)', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
+export const DOODLES = {
+  scissors: (
+    <svg viewBox="0 0 40 40" width="100%" height="100%"><circle {...dstroke} cx="10" cy="12" r="4.5" /><circle {...dstroke} cx="10" cy="28" r="4.5" /><path {...dstroke} d="M14 14.5L34 26M14 25.5L34 14" /></svg>
+  ),
+  bone: (
+    <svg viewBox="0 0 40 40" width="100%" height="100%"><path {...dstroke} d="M12 14a4 4 0 10-4 6 4 4 0 104 6l16-6a4 4 0 104-6 4 4 0 10-4-6l-16 6z" /></svg>
+  ),
+  paw: (
+    <svg viewBox="0 0 40 40" width="100%" height="100%"><circle {...dstroke} cx="12" cy="14" r="3.2" /><circle {...dstroke} cx="20" cy="11" r="3.2" /><circle {...dstroke} cx="28" cy="14" r="3.2" /><path {...dstroke} d="M20 19c-5 0-9 4-9 7.8 0 2.6 2 4.6 4.6 4.6 1.7 0 3-.7 4.4-.7s2.7.7 4.4.7c2.6 0 4.6-2 4.6-4.6C29 23 25 19 20 19z" /></svg>
+  ),
+  squiggle: (
+    <svg viewBox="0 0 60 20" width="100%" height="100%"><path {...dstroke} d="M3 12c5-8 9 8 14 0s9 8 14 0 9 8 14 0 9 8 12 2" /></svg>
+  ),
+  sparkle: (
+    <svg viewBox="0 0 40 40" width="100%" height="100%"><path d="M20 4l3.4 12.6L36 20l-12.6 3.4L20 36l-3.4-12.6L4 20l12.6-3.4L20 4z" fill="var(--primary)" stroke="var(--ink)" strokeWidth="2.2" strokeLinejoin="round" /></svg>
+  ),
+  bubbles: (
+    <svg viewBox="0 0 40 40" width="100%" height="100%"><circle {...dstroke} cx="14" cy="24" r="8" /><circle {...dstroke} cx="28" cy="14" r="5" /><circle {...dstroke} cx="30" cy="27" r="3" /></svg>
+  ),
+};
+
+export function Doodle({ kind, size = 44, top, left, right, bottom, rotate = 0, opacity = 0.32, delay = 0 }: {
+  kind: keyof typeof DOODLES; size?: number; top?: number | string; left?: number | string;
+  right?: number | string; bottom?: number | string; rotate?: number; opacity?: number; delay?: number;
+}) {
+  return (
+    <span aria-hidden className="gbDoodle" style={{ width: size, height: size, top, left, right, bottom, opacity, transform: `rotate(${rotate}deg)`, animationDelay: `${delay}s` }}>
+      {DOODLES[kind]}
+    </span>
+  );
+}
+
+// Organic tinted blob with a big doodle inside (zigzag step visuals).
+export function Blob({ kind, tint = 'var(--primary-soft)', size = 120, tilt = 0 }: {
+  kind: keyof typeof DOODLES; tint?: string; size?: number; tilt?: number;
+}) {
+  return (
+    <div aria-hidden style={{ width: size, height: size, background: tint, border: BORDER, boxShadow: HARD, borderRadius: '58% 42% 55% 45% / 45% 55% 45% 55%', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `rotate(${tilt}deg)`, flex: 'none' }}>
+      <span style={{ width: size * 0.52, height: size * 0.52 }}>{DOODLES[kind]}</span>
+    </div>
+  );
+}
+
+// Numbered storytelling step (zigzag row, alternate `flip`).
+export function StepRow({ n, title, doodle, tint, flip, children }: {
+  n: number; title: string; doodle: keyof typeof DOODLES; tint?: string; flip?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 36px', flexDirection: flip ? 'row-reverse' : 'row', justifyContent: 'space-between' }}>
+      <div style={{ flex: '1 1 340px', maxWidth: 620, display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+        <div className="gbSticker" style={{ '--tilt': `${flip ? 2.5 : -2.5}deg`, flex: 'none', width: 62, height: 62, borderRadius: '50%', background: 'var(--primary)', border: BORDER, boxShadow: HARD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FFD, fontWeight: 800, fontSize: 28 } as React.CSSProperties}>
+        {n}
+        </div>
+        <div>
+          <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 20, marginBottom: 5 }}>{title}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.6, color: 'var(--muted-1)' }}>{children}</div>
+        </div>
+      </div>
+      <Blob kind={doodle} tint={tint} tilt={flip ? -3 : 3} />
+    </div>
+  );
+}
+
+// Bento cell: mixed-size grid cards. span: 2 | 3 | 4 | 6 (of 6 columns).
+export function BentoCell({ span, tint, tilt = 0, children }: {
+  span: 2 | 3 | 4 | 6; tint?: string; tilt?: number; children: React.ReactNode;
+}) {
+  return (
+    <div className={`gbSpan${span} gbSticker`} style={{ '--tilt': `${tilt}deg`, background: tint ?? '#fff', border: BORDER, borderRadius: 20, padding: '20px 22px', boxShadow: HARD } as React.CSSProperties}>
+      {children}
+    </div>
+  );
+}
+
+// Starburst price badge.
+export function Starburst({ big, small, tilt = -6, size = 168 }: { big: string; small?: string; tilt?: number; size?: number }) {
+  return (
+    <div aria-hidden={false} style={{ position: 'relative', width: size, height: size, flex: 'none', transform: `rotate(${tilt}deg)` }}>
+      <svg viewBox="0 0 200 200" width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+        <path
+          d="M100 4l14 22 24-12 4 26 26-2-7 25 25 8-17 20 20 17-24 11 11 24-26 3 2 26-25-7-8 25-20-17-17 20-11-24-24 11-3-26-26 2 7-25-25-8 17-20L4 100l24-11L17 65l26-3-2-26 25 7 8-25 20 17L100 4z"
+          fill="var(--primary)" stroke="var(--ink)" strokeWidth="4" strokeLinejoin="round"
+        />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30 }}>
+        <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: size / 6.2, lineHeight: 1 }}>{big}</span>
+        {small && <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: size / 13, marginTop: 4, lineHeight: 1.15 }}>{small}</span>}
+      </div>
+    </div>
+  );
+}
+
+// Dotted-paper background for hero sections.
+export const DOTS_BG = {
+  backgroundImage: 'radial-gradient(var(--dot) 1.7px, transparent 1.7px)',
+  backgroundSize: '24px 24px',
+} as const;
+
 export function Footer({ crossLink }: { crossLink?: { href: string; label: string } }) {
   return (
     <footer style={{ padding: '26px 22px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--muted-2)' }}>

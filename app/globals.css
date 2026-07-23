@@ -49,8 +49,24 @@ html, body {
 @media (hover: hover) {
   .gbSticker:hover { transform: rotate(var(--tilt, 0deg)) translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
 }
+
+/* marketing bento grid: 6-col with spans, collapses to single column on phones */
+.gbBento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.gbSpan2 { grid-column: span 2; }
+.gbSpan3 { grid-column: span 3; }
+.gbSpan4 { grid-column: span 4; }
+.gbSpan6 { grid-column: span 6; }
+@media (max-width: 760px) {
+  .gbSpan2, .gbSpan3, .gbSpan4 { grid-column: span 6; }
+}
+
+/* floating decorative doodles */
+.gbDoodle { position: absolute; pointer-events: none; animation: gbFloat 6s ease-in-out infinite; }
+@media (max-width: 760px) { .gbDoodle { display: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .gbSticker { transition: none; }
+  .gbDoodle { animation: none; }
 }
 
 /* ---- animations (exact from the handoff) ---- */
