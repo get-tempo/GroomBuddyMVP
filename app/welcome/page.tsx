@@ -202,6 +202,22 @@ export default function Welcome() {
         </div>
       </section>
 
+      {/* audience columns: line icons over whitespace, Peri-style */}
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '34px 40px' }}>
+        {[
+          { i: ICONS.book, t: 'Grooming students', d: 'Between instructor check-ins, Buddy answers the question you were about to save for later, while the dog is still on the table.' },
+          { i: ICONS.paw, t: 'New groomers', d: 'Your first two years are full of dogs you have never done. Get a plan for each one and a straight answer when something looks off.' },
+          { i: ICONS.target, t: 'Mobile groomers', d: 'No senior groomer in the van. Buddy rides along: plans, technique cues, and photo checks between stops.' },
+          { i: ICONS.shield, t: 'Grooming schools', d: 'A coach in your students’ pocket that teaches your method, grounded in your curriculum, under your brand.' },
+        ].map(a => (
+          <div key={a.t}>
+            <span aria-hidden style={{ display: 'block', width: 34, height: 34, color: CLAY, marginBottom: 10 }}>{a.i}</span>
+            <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>{a.t}</div>
+            <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.6, color: MUT }}>{a.d}</div>
+          </div>
+        ))}
+      </section>
+
       {/* how it works: cream, editorial, no boxes */}
       <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 60px' }}>
         <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 40px' }}>How it works</h2>
@@ -246,6 +262,26 @@ export default function Welcome() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* FAQ: compact, honest */}
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '64px 26px 8px' }}>
+        <h2 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 28px' }}>Questions, answered straight</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '26px 48px' }}>
+          {[
+            { q: 'Is it really free?', a: 'Yes, everything, while we are in pilot. When paid plans arrive (around $19 a month), early users get a founding rate. No card, no signup today.' },
+            { q: 'Does it replace my instructor?', a: 'No, and it will tell you so itself. Buddy coaches between instructors. Tight matting, a stressed dog, or anything medical gets one answer: stop and get a person.' },
+            { q: 'Why not just use ChatGPT?', a: 'A general chatbot has no method. Buddy is grounded in a licensed grooming school’s curriculum, asks groomer questions (breed, coat condition, intended style), and answers the way an instructor teaches.' },
+            { q: 'What do I need to install?', a: 'Nothing. It runs in your phone’s browser. Open the link, add it to your home screen if you want, and start a groom.' },
+            { q: 'Can it see my work?', a: 'Send a photo mid-groom and Buddy tells you what to fix first, located on the dog. It judges execution against your intended style, and style choices are not treated as errors.' },
+            { q: 'Who built this?', a: 'A tiny team working alongside a state-licensed professional grooming school, whose students are piloting it right now. When an answer misses, you can tell us from inside the app.' },
+          ].map(f => (
+            <div key={f.q}>
+              <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>{f.q}</div>
+              <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.6, color: MUT }}>{f.a}</div>
+            </div>
+          ))}
         </div>
       </section>
 
