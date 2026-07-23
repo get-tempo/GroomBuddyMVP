@@ -53,7 +53,7 @@ export default function Diy() {
             'Her nails are black, how much do I take off?',
             'How do I get mats out behind the ears?',
             'What order do I do everything in?',
-            'Can I use human clippers on my dog?',
+            'How do I trim around the eyes safely?',
           ]} />
         </div>
       </header>
@@ -86,7 +86,7 @@ export default function Diy() {
       {/* why you're here: bento, editorial-recolored */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px' }}>
         <h2 style={{ ...SERIF, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px', maxWidth: 760 }}>
-          You can do this yourself. You just need someone to ask.
+          You can absolutely do this. Here&apos;s what usually stops people.
         </h2>
         <div className="gbBento">
           <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center' }}>
@@ -104,7 +104,7 @@ export default function Diy() {
             <span aria-hidden style={{ display: 'block', width: 36, height: 36, marginBottom: 8 }}>
               <svg viewBox="0 0 40 40" width="100%" height="100%"><rect x="4" y="8" width="32" height="24" rx="4" fill="none" stroke={DEEP} strokeWidth="2.4" /><path d="M17 14v12l10-6-10-6z" fill={DEEP} /></svg>
             </span>
-            <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>The video is for someone else&apos;s dog</div>
+            <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>The videos online aren&apos;t made for your dog</div>
             <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.55, color: MUT }}>
               Your dog&apos;s coat, mats, and patience are not the ones in the
               tutorial. You need answers about the dog in front of you.
@@ -126,10 +126,11 @@ export default function Diy() {
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               <span aria-hidden style={{ flex: 'none', width: 30, height: 30, color: DEEP, marginTop: 2 }}>{ICONS.paw}</span>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>Buddy sits next to the tub</div>
+                <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>Buddy is with you every step of the way</div>
                 <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.55, color: DEEP, opacity: 0.8 }}>
-                  A plan for your exact dog, one step at a time, with a coach to
-                  ask the moment you&apos;re unsure. Built with a real grooming school.
+                  A plan for your exact dog, and a coach you can ask at any step
+                  of the groom, the moment you&apos;re unsure. Built with a real
+                  grooming school.
                 </div>
               </div>
             </div>
@@ -148,7 +149,7 @@ export default function Diy() {
           { i: ICONS.book, t: 'A real school behind it', d: 'Answers come from a licensed grooming school’s curriculum, never generic internet advice.' },
           { i: ICONS.paw, t: 'Knows your dog', d: 'A doodle’s matting and a Shih Tzu’s coat get different plans, tools, and answers.' },
           { i: ICONS.shield, t: 'Safety first, always', d: 'Brush before blades, tiny tips on nails, and a hard stop the moment something is beyond a home groom.' },
-          { i: ICONS.person, t: 'Honest about its limits', d: 'Tight matting? See a pro. Wounds or lumps? See a vet. Some grooms belong at a salon, and Buddy will say so.' },
+          { i: ICONS.person, t: 'Honest about its limits', d: 'When Buddy isn’t sure, it’s built to say so and point you to a person, not guess. No made-up answers about your dog.' },
         ].map(a => (
           <div key={a.t} style={{ textAlign: 'center' }}>
             <span aria-hidden style={{ display: 'block', width: 54, height: 54, color: GOLD, margin: '0 auto 16px' }}>{a.i}</span>
@@ -191,7 +192,8 @@ export default function Diy() {
               Buddy keeps a licensed school&apos;s rules: brush fully before any
               blade, tiny tips on nails, and a hard stop the moment something is
               beyond a home groom. Some grooms belong at a salon, and Buddy will
-              tell you when yours is one of them.
+              tell you when yours is one of them. And when it doesn&apos;t know
+              something, it&apos;s built to say so, not to make an answer up.
             </p>
           </div>
           <div style={{ flex: '1 1 300px', maxWidth: 380, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 16, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
