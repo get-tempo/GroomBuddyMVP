@@ -69,25 +69,25 @@ export function PhoneFrame({ children, tall }: { children: React.ReactNode; tall
 }
 
 // Small inline stroke icons for the sticker cards (SVG, never emoji).
-const stroke = { fill: 'none', stroke: 'var(--ink)', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 export const ICONS = {
   book: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><path {...stroke} d="M12 6C10 4.2 7 4 4 4.8V19c3-.8 6-.6 8 1 2-1.6 5-1.8 8-1V4.8C17 4 14 4.2 12 6z" /><path {...stroke} d="M12 6v14" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><path {...stroke} d="M12 6C10 4.2 7 4 4 4.8V19c3-.8 6-.6 8 1 2-1.6 5-1.8 8-1V4.8C17 4 14 4.2 12 6z" /><path {...stroke} d="M12 6v14" /></svg>
   ),
   paw: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><circle {...stroke} cx="7" cy="8" r="1.9" /><circle {...stroke} cx="12" cy="6" r="1.9" /><circle {...stroke} cx="17" cy="8" r="1.9" /><path {...stroke} d="M12 11c-3 0-5.5 2.4-5.5 4.7 0 1.6 1.2 2.8 2.8 2.8 1 0 1.8-.4 2.7-.4s1.7.4 2.7.4c1.6 0 2.8-1.2 2.8-2.8C17.5 13.4 15 11 12 11z" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="7" cy="8" r="1.9" /><circle {...stroke} cx="12" cy="6" r="1.9" /><circle {...stroke} cx="17" cy="8" r="1.9" /><path {...stroke} d="M12 11c-3 0-5.5 2.4-5.5 4.7 0 1.6 1.2 2.8 2.8 2.8 1 0 1.8-.4 2.7-.4s1.7.4 2.7.4c1.6 0 2.8-1.2 2.8-2.8C17.5 13.4 15 11 12 11z" /></svg>
   ),
   target: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="12" r="8" /><circle {...stroke} cx="12" cy="12" r="3.5" /><circle cx="12" cy="12" r="1.2" fill="var(--ink)" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="12" r="8" /><circle {...stroke} cx="12" cy="12" r="3.5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></svg>
   ),
   sliders: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><path {...stroke} d="M4 7h16M4 12h16M4 17h16" /><circle {...stroke} cx="9" cy="7" r="2" fill="var(--cream)" /><circle {...stroke} cx="15" cy="12" r="2" fill="var(--cream)" /><circle {...stroke} cx="8" cy="17" r="2" fill="var(--cream)" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><path {...stroke} d="M4 7h16M4 12h16M4 17h16" /><circle {...stroke} cx="9" cy="7" r="2" fill="var(--cream)" /><circle {...stroke} cx="15" cy="12" r="2" fill="var(--cream)" /><circle {...stroke} cx="8" cy="17" r="2" fill="var(--cream)" /></svg>
   ),
   shield: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><path {...stroke} d="M12 3l7 2.8v5.4c0 4.8-3 7.9-7 9.8-4-1.9-7-5-7-9.8V5.8L12 3z" /><path {...stroke} d="M9 12l2 2 4-4.5" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><path {...stroke} d="M12 3l7 2.8v5.4c0 4.8-3 7.9-7 9.8-4-1.9-7-5-7-9.8V5.8L12 3z" /><path {...stroke} d="M9 12l2 2 4-4.5" /></svg>
   ),
   person: (
-    <svg width="20" height="20" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="7.5" r="3.5" /><path {...stroke} d="M5.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /></svg>
+    <svg width="100%" height="100%" viewBox="0 0 24 24"><circle {...stroke} cx="12" cy="7.5" r="3.5" /><path {...stroke} d="M5.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /></svg>
   ),
 };
 
@@ -100,7 +100,7 @@ export function StickerCard({ icon, title, tint, tilt, children }: {
       style={{ '--tilt': `${tilt ?? 0}deg`, background: tint ?? '#fff', border: BORDER, borderRadius: 16, padding: '14px 16px', boxShadow: HARD, flex: '1 1 230px', minWidth: 220, maxWidth: 330 } as React.CSSProperties}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-        <span style={{ flex: 'none', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: `2px solid var(--ink)`, borderRadius: 10, boxShadow: HARD2 }}>
+        <span style={{ flex: 'none', width: 34, height: 34, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: `2px solid var(--ink)`, borderRadius: 10, boxShadow: HARD2 }}>
           {icon}
         </span>
         <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15.5, lineHeight: 1.15 }}>{title}</span>

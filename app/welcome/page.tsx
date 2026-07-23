@@ -195,7 +195,7 @@ export default function Welcome() {
       </section>
 
       {/* what Buddy is: four icon columns (trust, user-relevant only) */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '34px 40px' }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '48px 48px' }}>
         {[
           { i: ICONS.book, t: 'A real school behind it', d: 'Answers come from a licensed grooming school’s curriculum, in an instructor’s voice, never generic internet advice.' },
           { i: ICONS.paw, t: 'Knows breeds and coats', d: 'A doodle’s matting and a Schnauzer’s skirt get different answers, tools, and blade lengths.' },
@@ -203,7 +203,7 @@ export default function Welcome() {
           { i: ICONS.person, t: 'Knows when you need a human', d: 'Tight matting, a stressed dog, anything medical: stop, get a person. It never replaces an instructor.' },
         ].map(a => (
           <div key={a.t}>
-            <span aria-hidden style={{ display: 'block', width: 34, height: 34, color: GOLD, marginBottom: 10 }}>{a.i}</span>
+            <span aria-hidden style={{ display: 'block', width: 54, height: 54, color: GOLD, marginBottom: 16 }}>{a.i}</span>
             <div style={{ fontWeight: 800, fontSize: 16.5, color: DEEP, marginBottom: 6 }}>{a.t}</div>
             <div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.6, color: MUT }}>{a.d}</div>
           </div>

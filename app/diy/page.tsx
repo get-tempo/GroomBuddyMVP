@@ -108,7 +108,7 @@ export default function Diy() {
             </BentoCell>
             <BentoCell span={3} tilt={-0.6}>
               <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <span style={{ flex: 'none', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: HARD2 }}>{ICONS.shield}</span>
+                <span style={{ flex: 'none', width: 34, height: 34, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: HARD2 }}>{ICONS.shield}</span>
                 <div>
                   <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 17, marginBottom: 6 }}>One bad snip ruins your confidence</div>
                   <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, color: 'var(--muted-1)' }}>
@@ -168,7 +168,7 @@ export default function Diy() {
           </div>
           <div className="gbSticker" style={{ '--tilt': '1.6deg', flex: '1 1 300px', maxWidth: 380, background: '#fff', border: BORDER, borderRadius: 20, padding: '20px 22px', boxShadow: HARD } as React.CSSProperties}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span style={{ flex: 'none', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: HARD2 }}>{ICONS.shield}</span>
+              <span style={{ flex: 'none', width: 34, height: 34, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: HARD2 }}>{ICONS.shield}</span>
               <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 18 }}>Buddy&apos;s hard rules</span>
             </div>
             {[
