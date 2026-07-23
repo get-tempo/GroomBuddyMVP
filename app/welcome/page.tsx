@@ -212,21 +212,27 @@ export default function Welcome() {
         ))}
       </section>
 
-      {/* pricing: cream, flat and honest */}
-      <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 64px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
-          Free while it&apos;s in pilot.
-        </h2>
-        <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, maxWidth: 660, margin: 0 }}>
-          The whole thing, no signup. When paid plans arrive they&apos;ll be around
-          $19 a month for individuals, and early users will get a founding rate.
-          This is an early product: some answers will miss, and when they do you
-          can tell the person who built it directly from inside the app.
-        </p>
-        <div style={{ marginTop: 26 }}>
-          <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '14px 28px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
-            Open Grooming Buddy
-          </Link>
+      {/* pricing: cream, flat and honest, sleeping doodle keeping it calm */}
+      <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 64px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 60px' }}>
+        <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
+          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 14px' }}>
+            Free while it&apos;s in pilot.
+          </h2>
+          <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: 0 }}>
+            The whole thing, no signup. When paid plans arrive they&apos;ll be around
+            $19 a month for individuals, and early users will get a founding rate.
+            This is an early product: some answers will miss, and when they do you
+            can tell the person who built it directly from inside the app.
+          </p>
+          <div style={{ marginTop: 26 }}>
+            <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '14px 28px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+              Open Grooming Buddy
+            </Link>
+          </div>
+        </div>
+        <div style={{ flex: '1 1 240px', display: 'flex', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/art/sketch-sleeping-doodle.png" alt="Hand-drawn sketch of a doodle curled up asleep" style={{ width: 'min(280px, 80%)', height: 'auto', display: 'block' }} />
         </div>
       </section>
 
