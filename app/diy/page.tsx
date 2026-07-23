@@ -32,6 +32,9 @@ export default function Diy() {
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '28px 60px', justifyContent: 'space-between' }}>
             <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
+              <div style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '7px 15px', fontWeight: 800, fontSize: 13.5, marginBottom: 18 }}>
+                Free for a limited time · No signup
+              </div>
               <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(36px, 4.8vw, 56px)', lineHeight: 1.1, color: LIGHT, margin: 0 }}>
                 Groom your own dog, with a pro-level coach.
               </h1>
