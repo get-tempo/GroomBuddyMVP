@@ -127,8 +127,9 @@ export default function Welcome() {
         ))}
       </section>
 
-      {/* how it works: steps left, the animated app demo right */}
-      <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 60px' }}>
+      {/* how it works: steps left, the animated app demo right, inset panel */}
+      <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '56px 16px 60px' }}>
+        <div style={{ background: LIGHT, borderRadius: 44, padding: '52px clamp(24px, 5vw, 64px) 56px' }}>
         <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 26px' }}>How it works</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '44px 70px', alignItems: 'center' }}>
           <div style={{ flex: '1 1 380px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 30 }}>
@@ -149,6 +150,7 @@ export default function Welcome() {
           <div style={{ flex: 'none', margin: '0 auto' }}>
             <ChatDemo />
           </div>
+        </div>
         </div>
       </section>
 

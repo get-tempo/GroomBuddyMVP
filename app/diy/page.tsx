@@ -32,7 +32,7 @@ export default function Diy() {
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
             <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
-              Groom your own dog. Stop guessing.
+              Groom your own dog, with a pro-level coach.
             </h1>
             <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
               Buddy builds a step-by-step plan for your exact dog, answers your
@@ -43,7 +43,7 @@ export default function Diy() {
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
-          <ChatPill />
+          <ChatPill text="Hi, I'm Buddy. Grooming your dog at home? Just ask." />
         </div>
       </header>
 
@@ -74,9 +74,11 @@ export default function Diy() {
 
       {/* why you're here: bento, editorial-recolored */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '72px 26px 8px' }}>
-        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px' }}>Why you&apos;re here</h2>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 24px', maxWidth: 760 }}>
+          You can do this yourself. You just need someone to ask.
+        </h2>
         <div className="gbBento">
-          <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}` }}>
+          <div className="gbSpan4" style={{ background: CLAY, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '22px 24px', boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(34px, 4.5vw, 46px)', lineHeight: 1, whiteSpace: 'nowrap', color: DEEP }}>
                 $60<span style={{ fontSize: '0.55em' }}> to </span>$120
@@ -109,7 +111,7 @@ export default function Diy() {
               </div>
             </div>
           </div>
-          <div className="gbSpan3" style={{ background: LIGHT, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}` }}>
+          <div className="gbSpan3" style={{ background: LIGHT, border: `2px solid ${DEEP}`, borderRadius: 18, padding: '20px 22px', boxShadow: `0 3px 0 ${DEEP}`, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               <span aria-hidden style={{ flex: 'none', width: 30, height: 30, color: DEEP, marginTop: 2 }}>{ICONS.paw}</span>
               <div>
@@ -145,11 +147,12 @@ export default function Diy() {
         ))}
       </section>
 
-      {/* how it works: the zigzag with doodle blobs */}
-      <section id="how" style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 26px 60px' }}>
+      {/* how it works: the zigzag with doodle blobs, on an inset rounded panel */}
+      <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '56px 16px 60px' }}>
+        <div style={{ background: LIGHT, borderRadius: 44, padding: '52px clamp(24px, 5vw, 64px) 56px' }}>
         <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(28px, 3.4vw, 38px)', color: DEEP, margin: '0 0 34px' }}>How it works</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
-          <EStepRow n={1} title="Tell Buddy about your dog" doodle="paw" tint={LIGHT}>
+          <EStepRow n={1} title="Tell Buddy about your dog" doodle="paw" tint={CREAM}>
             Breed or mix, how matted the coat is, and the look you want. Twenty
             seconds of taps. Honest answers get honest plans.
           </EStepRow>
@@ -158,10 +161,11 @@ export default function Diy() {
             brush-out, then the haircut), with the tools and the one thing to
             watch at each step.
           </EStepRow>
-          <EStepRow n={3} title="Ask whenever you're unsure" doodle="bubbles" tint={LIGHT}>
+          <EStepRow n={3} title="Ask whenever you're unsure" doodle="bubbles" tint={CREAM}>
             Every step has a chat. Send a photo mid-groom and Buddy tells you
             what to fix and whether you have room to keep going.
           </EStepRow>
+        </div>
         </div>
       </section>
 

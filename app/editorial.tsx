@@ -49,11 +49,11 @@ export function Nav({ links }: { links: { href: string; label: string }[] }) {
 }
 
 // The hero chat pill: the actual product, straddling the color seam.
-export function ChatPill() {
+export function ChatPill({ text = "Hi, I'm Buddy. Stuck mid-groom? Just ask." }: { text?: string }) {
   return (
     <Link href="/" aria-label="Open Grooming Buddy and ask a question" style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 999, padding: '15px 20px', boxShadow: `0 4px 0 ${DEEP}`, textDecoration: 'none', maxWidth: 620, width: '100%' }}>
       <span style={{ flex: 1, fontSize: 'clamp(14px, 2.2vw, 17px)', fontWeight: 600, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        Hi, I&apos;m Buddy. Stuck mid-groom? Just ask.
+        {text}
         <span className="gbCaret" style={{ background: INK }} />
       </span>
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={MUT} strokeWidth="2.4" strokeLinecap="round" /></svg>
