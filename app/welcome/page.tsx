@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Fraunces } from 'next/font/google';
-import { ICONS } from '../marketing-ui';
+import { ICONS, PhoneFrame } from '../marketing-ui';
 import AnalyticsInit from '../analytics-init';
 
 // Marketing landing page, "warm clay" editorial direction (askperi.ai-inspired
@@ -51,6 +51,31 @@ function ChatPill() {
   );
 }
 
+// Animated hero demo: the black-nails question, Buddy thinking, the answer.
+// Pure CSS loop (12s), see gbDemoQ/T/A in globals.css.
+function HeroPhoneDemo() {
+  return (
+    <PhoneFrame>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: MUT }}>Bella · Goldendoodle · nails</div>
+      <div className="gbDemoQ" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ maxWidth: '85%', background: CLAY, border: `2px solid ${INK}`, borderRadius: 14, borderBottomRightRadius: 4, padding: '8px 11px', fontSize: 13, fontWeight: 700, color: INK }}>
+          Her nails are black. I can&apos;t see the quick. How much do I take off?
+        </div>
+      </div>
+      <div className="gbDemoT" style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '2px 6px' }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite' }} />
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .2s' }} />
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: MUT, animation: 'gbType 1.2s infinite .4s' }} />
+      </div>
+      <div className="gbDemoA" style={{ maxWidth: '92%', background: '#fff', border: `2px solid ${INK}`, borderRadius: 14, borderTopLeftRadius: 4, padding: '9px 12px', fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: INK }}>
+        On black nails you go by the cut surface, not by sight. Take thin slivers
+        off the tip. When the center of the cut face turns from dry white to a
+        darker, softer dot, stop there. That dot means the quick is close.
+      </div>
+    </PhoneFrame>
+  );
+}
+
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return <a href={href} style={{ color: DEEP, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>{children}</a>;
 }
@@ -82,17 +107,23 @@ export default function Welcome() {
         </div>
       </nav>
 
-      {/* hero: full-width deep block, chat pill on the bottom seam */}
+      {/* hero: deep block, headline left + animated phone demo right, chat
+          pill on the bottom seam */}
       <header style={{ position: 'relative' }}>
-        <div style={{ background: DEEP, padding: '90px 26px 120px' }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.6vw, 66px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 700 }}>
-              A coach in your pocket, mid-groom.
-            </h1>
-            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 520 }}>
-              Buddy plans the groom for the exact dog on your table, answers while
-              you work, and tells you straight what to fix.
-            </p>
+        <div style={{ background: DEEP, padding: '64px 26px 110px' }}>
+          <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '36px 60px', justifyContent: 'space-between' }}>
+            <div style={{ flex: '1 1 380px', maxWidth: 620 }}>
+              <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.2vw, 62px)', lineHeight: 1.08, color: LIGHT, margin: 0 }}>
+                A coach in your pocket, mid-groom.
+              </h1>
+              <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 480 }}>
+                Buddy plans the groom for the exact dog on your table, answers while
+                you work, and tells you straight what to fix.
+              </p>
+            </div>
+            <div style={{ flex: 'none' }}>
+              <HeroPhoneDemo />
+            </div>
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
@@ -105,7 +136,7 @@ export default function Welcome() {
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
           <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(380px, 92%)', height: 'auto', display: 'block' }} />
+            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(470px, 98%)', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
             <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>

@@ -73,6 +73,32 @@ html, body {
 .gbFaq .gbFaqMinus, .gbFaq[open] .gbFaqPlus { display: none; }
 .gbFaq[open] .gbFaqMinus { display: block; }
 
+/* hero phone demo: question types in, Buddy thinks, answer appears, loop */
+.gbDemoQ { animation: gbDemoQ 12s ease infinite; }
+.gbDemoT { animation: gbDemoT 12s ease infinite; }
+.gbDemoA { animation: gbDemoA 12s ease infinite; }
+@keyframes gbDemoQ {
+  0%, 2% { opacity: 0; transform: scale(0.92); }
+  5% { opacity: 1; transform: scale(1); }
+  92% { opacity: 1; }
+  97%, 100% { opacity: 0; }
+}
+@keyframes gbDemoT {
+  0%, 7% { opacity: 0; }
+  10%, 22% { opacity: 1; }
+  26%, 100% { opacity: 0; }
+}
+@keyframes gbDemoA {
+  0%, 24% { opacity: 0; transform: scale(0.95); }
+  28% { opacity: 1; transform: scale(1); }
+  92% { opacity: 1; }
+  97%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gbDemoQ, .gbDemoT, .gbDemoA { animation: none; }
+  .gbDemoT { display: none; }
+}
+
 /* blinking caret in the marketing hero chat pill */
 @keyframes gbCaret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0; } }
 .gbCaret { display: inline-block; width: 2px; height: 1.05em; vertical-align: text-bottom; margin-left: 2px; animation: gbCaret 1.1s steps(1) infinite; }
