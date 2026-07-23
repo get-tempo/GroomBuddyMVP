@@ -64,6 +64,15 @@ html, body {
 .gbDoodle { position: absolute; pointer-events: none; animation: gbFloat 6s ease-in-out infinite; }
 @media (max-width: 760px) { .gbDoodle { display: none; } }
 
+/* FAQ accordion cards (native <details>, colors via --gbf* vars set inline) */
+.gbFaq { background: #fff; border: 2px solid var(--gbfInk); border-radius: 16px; box-shadow: 0 3px 0 var(--gbfInk); margin-bottom: 14px; }
+.gbFaq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px; font-weight: 800; font-size: 16px; color: var(--gbfInk); }
+.gbFaq summary::-webkit-details-marker { display: none; }
+.gbFaq .gbFaqA { margin: 0; padding: 0 52px 16px 20px; font-weight: 600; font-size: 14.5px; line-height: 1.6; color: var(--gbfMut); }
+.gbFaqIcon { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--gbfAccent); display: flex; align-items: center; justify-content: center; }
+.gbFaq .gbFaqMinus, .gbFaq[open] .gbFaqPlus { display: none; }
+.gbFaq[open] .gbFaqMinus { display: block; }
+
 /* blinking caret in the marketing hero chat pill */
 @keyframes gbCaret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0; } }
 .gbCaret { display: inline-block; width: 2px; height: 1.05em; vertical-align: text-bottom; margin-left: 2px; animation: gbCaret 1.1s steps(1) infinite; }

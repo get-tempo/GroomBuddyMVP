@@ -896,7 +896,7 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
   const ready = !!finalBreed && !!set && !!finalCoat && !!finalStyle && !loading;
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
-    <div key={label} onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '9px 14px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none' }}>{label}</div>
+    <div key={label} onClick={onClick} style={{ background: active ? 'var(--primary)' : '#fff', border: active ? BORDER3 : BORDER, borderRadius: 999, padding: '10px 12px', fontFamily: FFD, fontWeight: 800, fontSize: 13.5, lineHeight: 1.25, color: INK, cursor: 'pointer', boxShadow: active ? HARD2 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 42 }}>{label}</div>
   );
   const otherInput = (val: string, set: (v: string) => void, placeholder: string) => (
     <input
@@ -910,7 +910,8 @@ function Setup({ back, onBuild, loading, error }: { back: () => void; onBuild: (
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div style={{ marginTop: 20 }}>
       <div style={{ fontFamily: FFD, fontWeight: 800, fontSize: 15, color: INK, marginBottom: 9 }}>{title}</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{children}</div>
+      {/* uniform 2-col grid: ragged pill-wrap read as messy with 12 breeds */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>{children}</div>
     </div>
   );
 
@@ -1406,13 +1407,16 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
   const scrollRef = useRef<HTMLDivElement>(null);
   const busy = status === 'submitted' || status === 'streaming';
 
-  // Show the "there's more →" fade/chevron on the chip row until scrolled to the end.
+  // Show the "there's more →" fade/chevron on the chip row until scrolled to
+  // the end, and a mirrored "← back" one once scrolled away from the start.
   const chipScrollRef = useRef<HTMLDivElement>(null);
   const [chipsMore, setChipsMore] = useState(false);
+  const [chipsLess, setChipsLess] = useState(false);
   const updateChipScroll = () => {
     const el = chipScrollRef.current;
     if (!el) return;
     setChipsMore(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+    setChipsLess(el.scrollLeft > 4);
   };
   useEffect(() => {
     updateChipScroll();
@@ -1671,6 +1675,19 @@ function ChatPanel({ context, intro, compact, chips, ask, onAskConsumed, initial
                 style={{ pointerEvents: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 2px 8px 8px', display: 'flex', alignItems: 'center' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </div>
+          )}
+          {chipsLess && (
+            <div
+              style={{ position: 'absolute', top: compact ? 8 : 10, bottom: compact ? 4 : 12, left: compact ? 0 : 18, width: 42, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', background: `linear-gradient(to left, transparent, ${compact ? '#fff' : 'var(--cream)'} 62%)` }}
+            >
+              <button
+                onClick={() => chipScrollRef.current?.scrollBy({ left: -Math.max(140, (chipScrollRef.current?.clientWidth ?? 240) * 0.7), behavior: 'smooth' })}
+                aria-label="Previous suggestions"
+                style={{ pointerEvents: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 8px 8px 2px', display: 'flex', alignItems: 'center' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
             </div>
           )}
