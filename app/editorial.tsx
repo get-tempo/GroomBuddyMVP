@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { DM_Serif_Display } from 'next/font/google';
 import { PhoneFrame, DOODLES } from './marketing-ui';
+import TypingText from './typing-text';
 
 // The editorial design system shared by the marketing pages (/welcome, /diy):
 // brand yellow/espresso/cream with the tonal rule (deep text on bright blocks,
@@ -27,7 +28,7 @@ export const TINT = '#f4ece0';       // subtle section tint
 export const MUT = '#6b5d4e';        // muted body on cream
 export const GOLD = '#9a7b3f';       // serif accents on cream
 
-const FFD = 'var(--font-display)';
+export const FFD = 'var(--font-display)';
 
 export function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return <a href={href} style={{ color: DEEP, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>{children}</a>;
@@ -39,7 +40,7 @@ export function Nav({ links }: { links: { href: string; label: string }[] }) {
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/art/logo-buddy.png" alt="" style={{ width: 40, height: 'auto', display: 'block' }} />
-        <span style={{ ...SERIF, fontSize: 24, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
+        <span style={{ fontFamily: FFD, fontWeight: 800, fontSize: 22, color: DEEP, letterSpacing: 0.2 }}>grooming buddy</span>
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
         {links.map(l => <NavLink key={l.href} href={l.href}>{l.label}</NavLink>)}
@@ -49,12 +50,13 @@ export function Nav({ links }: { links: { href: string; label: string }[] }) {
   );
 }
 
-// The hero chat pill: the actual product, straddling the color seam.
-export function ChatPill({ text = "Hi, I'm Buddy. Stuck mid-groom? Just ask." }: { text?: string }) {
+// The hero chat pill: the actual product, straddling the color seam. Pass
+// `prompts` for the typewriter loop (types, holds, deletes, next question).
+export function ChatPill({ text = "Hi, I'm Buddy. Stuck mid-groom? Just ask.", prompts }: { text?: string; prompts?: string[] }) {
   return (
     <Link href="/" aria-label="Open Grooming Buddy and ask a question" style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: `2px solid ${DEEP}`, borderRadius: 999, padding: '15px 20px', boxShadow: `0 4px 0 ${DEEP}`, textDecoration: 'none', maxWidth: 620, width: '100%' }}>
       <span style={{ flex: 1, fontSize: 'clamp(14px, 2.2vw, 17px)', fontWeight: 600, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {text}
+        {prompts ? <TypingText prompts={prompts} /> : text}
         <span className="gbCaret" style={{ background: INK }} />
       </span>
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 5v14M5 12h14" stroke={MUT} strokeWidth="2.4" strokeLinecap="round" /></svg>

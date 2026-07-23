@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ICONS } from '../marketing-ui';
-import { SERIF, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, EStepRow } from '../editorial';
+import { SERIF, FFD, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, EStepRow } from '../editorial';
 import AnalyticsInit from '../analytics-init';
 
 // Landing page for DIY / home groomers, on the shared editorial design system
@@ -30,20 +30,31 @@ export default function Diy() {
       {/* hero: compact deep block, chat pill on the seam */}
       <header style={{ position: 'relative' }}>
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
-              Groom your own dog, with a pro-level coach.
-            </h1>
-            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
-              Buddy builds a step-by-step plan for your exact dog, answers your
-              questions while you work, and looks at photos when something seems
-              off. It coaches the way a grooming instructor does, because it was
-              built with one.
-            </p>
+          <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '28px 60px', justifyContent: 'space-between' }}>
+            <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
+              <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(36px, 4.8vw, 56px)', lineHeight: 1.1, color: LIGHT, margin: 0 }}>
+                Groom your own dog, with a pro-level coach.
+              </h1>
+              <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
+                Buddy builds a step-by-step plan for your exact dog, answers your
+                questions while you work, and looks at photos when something seems
+                off. It coaches the way a grooming instructor does, because it was
+                built with one.
+              </p>
+            </div>
+            <div style={{ flex: 'none', width: 'clamp(150px, 18vw, 220px)', aspectRatio: '1', borderRadius: '50%', background: LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/art/logo-buddy.png" alt="" style={{ width: '68%', height: 'auto', display: 'block' }} />
+            </div>
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
-          <ChatPill text="Hi, I'm Buddy. Grooming your dog at home? Just ask." />
+          <ChatPill prompts={[
+            'Her nails are black, how much do I take off?',
+            'How do I get mats out behind the ears?',
+            'What order do I do everything in?',
+            'Can I use human clippers on my dog?',
+          ]} />
         </div>
       </header>
 
@@ -56,7 +67,7 @@ export default function Diy() {
           </div>
           <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
             <h2 style={{ ...SERIF, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
-              The salon bill keeps coming.
+              Those salon visits add up.
             </h2>
             <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
               Buddy helps you do it yourself: a plan for your exact dog, one step

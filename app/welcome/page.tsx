@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ICONS } from '../marketing-ui';
-import { SERIF, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo } from '../editorial';
+import { SERIF, FFD, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo } from '../editorial';
 import AnalyticsInit from '../analytics-init';
 
 // Marketing landing page for students and pros. Editorial design system lives
@@ -39,18 +39,29 @@ export default function Welcome() {
       {/* hero: compact deep block so the next band peeks above the fold */}
       <header style={{ position: 'relative' }}>
         <div style={{ background: DEEP, padding: '64px 26px 96px' }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <h1 style={{ ...SERIF, fontSize: 'clamp(40px, 5.4vw, 64px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 680 }}>
-              A coach in your pocket, mid-groom.
-            </h1>
-            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
-              Buddy plans the groom for the exact dog on your table, answers while
-              you work, and tells you straight what to fix.
-            </p>
+          <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '28px 60px', justifyContent: 'space-between' }}>
+            <div style={{ flex: '1 1 380px', maxWidth: 640 }}>
+              <h1 style={{ fontFamily: FFD, fontWeight: 800, fontSize: 'clamp(36px, 4.8vw, 56px)', lineHeight: 1.1, color: LIGHT, margin: 0 }}>
+                A coach in your pocket, mid-groom.
+              </h1>
+              <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 540 }}>
+                Buddy plans the groom for the exact dog on your table, answers while
+                you work, and tells you straight what to fix.
+              </p>
+            </div>
+            <div style={{ flex: 'none', width: 'clamp(150px, 18vw, 220px)', aspectRatio: '1', borderRadius: '50%', background: LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/art/logo-buddy.png" alt="" style={{ width: '68%', height: 'auto', display: 'block' }} />
+            </div>
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
-          <ChatPill />
+          <ChatPill prompts={[
+            'How do I blend the neck into the chest?',
+            'What blade for a matted doodle?',
+            'How do I scissor a teddy head?',
+            'How short can I go on a double coat?',
+          ]} />
         </div>
       </header>
 
@@ -100,7 +111,7 @@ export default function Welcome() {
             Or anyone with a question, because nobody remembers every breed.
           </p>
           <p style={{ fontWeight: 800, fontSize: 17, color: INK, margin: '16px 0 0' }}>
-            Buddy was made specifically for the grooming table.
+            Made for the grooming table.
           </p>
         </div>
       </section>
