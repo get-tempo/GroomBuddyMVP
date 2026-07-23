@@ -196,7 +196,12 @@ export default function Welcome() {
       </section>
 
       {/* what Buddy is: four icon columns (trust, user-relevant only) */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '48px 48px' }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '88px 26px 0' }}>
+        <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: 0, maxWidth: 720 }}>
+          Helping grooming students and new groomers work with confidence.
+        </h2>
+      </section>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '44px 26px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '48px 48px' }}>
         {[
           { i: ICONS.book, t: 'A real school behind it', d: 'Answers come from a licensed grooming school’s curriculum, in an instructor’s voice, never generic internet advice.' },
           { i: ICONS.paw, t: 'Knows breeds and coats', d: 'A doodle’s matting and a Schnauzer’s skirt get different answers, tools, and blade lengths.' },
@@ -279,22 +284,28 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* schools: tint band, editorial */}
+      {/* schools: tint band, editorial, grad-cap doodle */}
       <section id="schools" style={{ background: TINT, padding: '64px 26px' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
-            For grooming schools: your curriculum, your method, your brand
-          </h2>
-          <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, maxWidth: 760, margin: '0 0 20px' }}>
-            Your students already ask AI questions mid-groom, and today it answers
-            with no method at all. Buddy lets your school own that moment: an
-            instance branded to your school, grounded in your curriculum and video
-            library, answering in your voice, with your safety rules. Your
-            materials stay yours.
-          </p>
-          <a href="mailto:andrew+julian@get-tempo.com?subject=Grooming%20Buddy%20for%20our%20school" style={{ display: 'inline-block', background: DEEP, color: LIGHT, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
-            Talk to us about a pilot
-          </a>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '24px 60px' }}>
+          <div style={{ flex: '1 1 420px', maxWidth: 700 }}>
+            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(26px, 3.2vw, 34px)', color: DEEP, margin: '0 0 12px' }}>
+              For grooming schools: your curriculum, your method, your brand
+            </h2>
+            <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, color: MUT, margin: '0 0 20px' }}>
+              Your students already ask AI questions mid-groom, and today it answers
+              with no method at all. Buddy lets your school own that moment: an
+              instance branded to your school, grounded in your curriculum and video
+              library, answering in your voice, with your safety rules. Your
+              materials stay yours.
+            </p>
+            <a href="mailto:andrew+julian@get-tempo.com?subject=Grooming%20Buddy%20for%20our%20school" style={{ display: 'inline-block', background: DEEP, color: LIGHT, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
+              Talk to us about a pilot
+            </a>
+          </div>
+          <div style={{ flex: '1 1 220px', display: 'flex', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/art/sketch-grad-doodle.png" alt="Hand-drawn sketch of a doodle wearing a graduation cap" style={{ width: 'min(260px, 78%)', height: 'auto', display: 'block' }} />
+          </div>
         </div>
       </section>
 
