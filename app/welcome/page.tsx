@@ -81,19 +81,14 @@ export default function Welcome() {
         </div>
       </nav>
 
-      {/* hero: sketch block + deep block, chat pill on the bottom seam. The
-          golden's paw prints run down toward the pill on purpose. */}
+      {/* hero: full-width deep block, chat pill on the bottom seam */}
       <header style={{ position: 'relative' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 340px', background: TINT, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '36px 24px 0' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(500px, 96%)', height: 'auto', display: 'block' }} />
-          </div>
-          <div style={{ flex: '1 1 420px', background: DEEP, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 5vw 110px' }}>
-            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(38px, 5.2vw, 62px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 620 }}>
+        <div style={{ background: DEEP, padding: '90px 26px 120px' }}>
+          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+            <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px, 5.6vw, 66px)', lineHeight: 1.08, color: LIGHT, margin: 0, maxWidth: 700 }}>
               A coach in your pocket, mid-groom.
             </h1>
-            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 480 }}>
+            <p style={{ color: LIGHT, opacity: 0.75, fontSize: 17, fontWeight: 600, lineHeight: 1.6, margin: '18px 0 0', maxWidth: 520 }}>
               Buddy plans the groom for the exact dog on your table, answers while
               you work, and tells you straight what to fix.
             </p>
@@ -104,21 +99,27 @@ export default function Welcome() {
         </div>
       </header>
 
-      {/* promise band: tint, yellow only on the CTA */}
-      <section style={{ background: TINT, color: DEEP, padding: '92px 26px 64px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
-            Helping grooming students and new groomers work with confidence.
-          </h2>
-          <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
-            Your instructor can&apos;t be at every table, and a 40-minute video
-            doesn&apos;t help with wet hands. Buddy is the answer in the moment,
-            grounded in a real school&apos;s curriculum.
-          </p>
-          <div style={{ marginTop: 22 }}>
-            <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
-              Try Buddy free
-            </Link>
+      {/* promise band: pale butter, the golden roams free on it Peri-style */}
+      <section style={{ background: LIGHT, color: DEEP, padding: '84px 26px 0' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '10px 50px', justifyContent: 'center' }}>
+          <div style={{ flex: '1 1 300px', maxWidth: 420, display: 'flex', justifyContent: 'center', alignSelf: 'flex-end' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/art/sketch-golden-pawprints.png" alt="Hand-drawn sketch of a golden retriever glancing back, leaving paw prints" style={{ width: 'min(380px, 92%)', height: 'auto', display: 'block' }} />
+          </div>
+          <div style={{ flex: '1 1 380px', maxWidth: 540, paddingBottom: 64 }}>
+            <h2 style={{ ...SERIF, fontWeight: 600, fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.25, margin: '0 0 12px' }}>
+              Helping grooming students and new groomers work with confidence.
+            </h2>
+            <p style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
+              Your instructor can&apos;t be at every table, and a 40-minute video
+              doesn&apos;t help with wet hands. Buddy is the answer in the moment,
+              grounded in a real school&apos;s curriculum.
+            </p>
+            <div style={{ marginTop: 22 }}>
+              <Link href="/" style={{ display: 'inline-block', background: CLAY, color: INK, borderRadius: 999, padding: '13px 26px', fontWeight: 800, fontSize: 16, textDecoration: 'none', boxShadow: `0 3px 0 ${DEEP}` }}>
+                Try Buddy free
+              </Link>
+            </div>
           </div>
         </div>
       </section>
