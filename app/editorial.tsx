@@ -68,6 +68,25 @@ export function ChatPill({ text = "Hi, I'm Buddy. Stuck mid-groom? Just ask.", p
   );
 }
 
+// The hero logo badge: the mark sitting on a pale-butter bone.
+export function LogoBone() {
+  return (
+    <div style={{ position: 'relative', flex: 'none', width: 'clamp(240px, 27vw, 340px)', aspectRatio: '300 / 160' }}>
+      <svg viewBox="0 0 300 160" width="100%" height="100%" style={{ position: 'absolute', inset: 0 }} aria-hidden>
+        <g fill={LIGHT}>
+          <circle cx="52" cy="52" r="42" />
+          <circle cx="52" cy="108" r="42" />
+          <circle cx="248" cy="52" r="42" />
+          <circle cx="248" cy="108" r="42" />
+          <rect x="46" y="38" width="208" height="84" rx="32" />
+        </g>
+      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/art/logo-buddy.png" alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '44%', height: 'auto' }} />
+    </div>
+  );
+}
+
 // Organic blob with a doodle inside, editorial-recolored (the old sticker
 // zigzag visual, minus the tilt-and-hard-shadow look).
 export function EBlob({ kind, tint = LIGHT, size = 120 }: {

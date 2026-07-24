@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ICONS } from '../marketing-ui';
-import { SERIF, FFD, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo } from '../editorial';
+import { SERIF, FFD, CREAM, INK, CLAY, DEEP, LIGHT, TINT, MUT, GOLD, Nav, ChatPill, ChatDemo, LogoBone } from '../editorial';
 import AnalyticsInit from '../analytics-init';
 
 // Marketing landing page for students and pros. Editorial design system lives
@@ -52,10 +52,7 @@ export default function Welcome() {
                 you work, and tells you straight what to fix.
               </p>
             </div>
-            <div style={{ flex: 'none', width: 'clamp(150px, 18vw, 220px)', aspectRatio: '1', borderRadius: '50%', background: LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/art/logo-buddy.png" alt="" style={{ width: '68%', height: 'auto', display: 'block' }} />
-            </div>
+            <LogoBone />
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: -34, display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
